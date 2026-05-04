@@ -294,7 +294,10 @@ export default function Home() {
               <h3 className="text-xl font-black">AI Intelligence</h3>
             </div>
             <p className="text-md text-indigo-100 leading-relaxed font-bold mb-10">
-              "System optimization complete. You have 3 overdue invoices totaling ₹2.1L. Automated escalation advised for Tesla Energy."
+              {data.isDemo ? 
+                `"System optimization complete. You have 3 overdue invoices totaling ₹2.1L. Automated escalation advised for Tesla Energy."` :
+                `"Business Intelligence: You have ${data.invoiceDistribution?.overdue || 0} overdue invoices. Gross Revenue is at ₹${((data.totalRevenue || 0) / 100000).toFixed(2)}L for this period."`
+              }
             </p>
             <button className="w-full py-4 bg-white text-indigo-600 font-black rounded-2xl text-xs hover:bg-indigo-50 transition-all shadow-xl shadow-indigo-900/20 active:scale-95">
               RUN AI ANALYSIS
