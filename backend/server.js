@@ -83,16 +83,17 @@ app.use((req, res, next) => {
 
 app.use(errorMiddleware);
 
-async function startServer() {
-  try {
-    await connectDB();
-    app.listen(PORT, () => {
-      console.log(`🚀 Production server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("❌ Failed to start server:", error);
-    process.exit(1);
-  }
-}
-
-startServer();
+// ======================================
+// 6. Server Startup Pattern
+// ======================================
+app.listen(PORT, () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
+  
+  // Initialize database connection after the server has successfully bound to the port
+  // This ensures Render/Vercel detect the open port immediately.
+  connectDB().catch(err => {
+    console.error("❌ Database initialization failed:", err);
+    // In production, we might want to keep the process alive so the health check can report the failure
+    // instead of a silent 'No open ports' crash.
+  });
+});
