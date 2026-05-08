@@ -53,13 +53,13 @@ api.interceptors.response.use(
           localStorage.removeItem('vyaparflow_token');
           localStorage.removeItem('vyaparflow_refresh_token');
           localStorage.removeItem('vyaparflow_user');
-          window.location.href = '/auth';
+          window.location.href = '/login';
         }
       } else {
         // No refresh token - logout
         localStorage.removeItem('vyaparflow_token');
         localStorage.removeItem('vyaparflow_user');
-        window.location.href = '/auth';
+        window.location.href = '/login';
       }
     }
 
@@ -81,26 +81,26 @@ export const resetPassword = (token, password) => api.post(`/auth/reset-password
 export const verifyEmail = (token) => api.get(`/auth/verify-email/${token}`);
 
 // Domain Helpers
-export const getInvoices = () => api.get('/invoices').then(res => res.invoices);
+export const getInvoices = () => api.get('/invoices').then(res => res.data.invoices);
 export const saveInvoice = (data) => data._id ? api.put(`/invoices/${data._id}`, data) : api.post('/invoices', data);
 export const deleteInvoice = (id) => api.delete(`/invoices/${id}`);
 export const finalizeInvoice = (id) => api.post(`/invoices/finalize/${id}`);
 export const updatePayment = (id, data) => api.put(`/invoices/payment/${id}`, data);
 
-export const getClients = () => api.get('/clients').then(res => res.clients);
+export const getClients = () => api.get('/clients').then(res => res.data.clients);
 export const createClient = (data) => api.post('/clients', data);
 export const updateClient = (id, data) => api.put(`/clients/${id}`, data);
 export const deleteClient = (id) => api.delete(`/clients/${id}`);
 
-export const getProducts = () => api.get('/products').then(res => res.products);
+export const getProducts = () => api.get('/products').then(res => res.data.products);
 export const createProduct = (data) => api.post('/products', data);
 export const updateProduct = (id, data) => api.put(`/products/${id}`, data);
 export const deleteProduct = (id) => api.delete(`/products/${id}`);
 
-export const getAnalytics = (range) => api.get(`/analytics?range=${range || '1Y'}`).then(res => res.analytics);
+export const getAnalytics = (range) => api.get(`/analytics?range=${range || '1Y'}`).then(res => res.data.analytics);
 export const generateAiItems = (prompt) => api.post('/generate', { prompt });
-export const getAiInsights = () => api.get('/generate/insights').then(res => res.insights);
-export const updateProfile = (data) => api.put('/auth/profile', data).then(res => res.user);
+export const getAiInsights = () => api.get('/generate/insights').then(res => res.data.insights);
+export const updateProfile = (data) => api.put('/auth/profile', data).then(res => res.data.user);
 export const logCommunication = (id, data) => api.post(`/invoices/communication/${id}`, data);
 
 export default api;

@@ -13,8 +13,14 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('vyaparflow_user');
 
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch (err) {
+        console.error("Auth hydration failed:", err);
+        localStorage.removeItem('vyaparflow_token');
+        localStorage.removeItem('vyaparflow_user');
+      }
     }
     setLoading(false);
   }, []);

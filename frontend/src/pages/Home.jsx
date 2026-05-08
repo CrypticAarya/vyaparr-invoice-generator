@@ -31,7 +31,7 @@ export default function Home() {
     return <PageLoader />;
   }
 
-  const { metrics, charts, recentActivity } = analyticsData.analytics;
+  const { metrics, charts, recentActivity } = analyticsData;
 
   return (
     <div className="space-y-10">

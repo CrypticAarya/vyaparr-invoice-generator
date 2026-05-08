@@ -52,19 +52,6 @@ export default function Inventory() {
     const mutation = editingProduct ? updateProductMutation : createProductMutation;
     
     mutation.mutate(
-      editingClient ? { id: editingProduct._id, data: formData } : formData, // Fixed typo from earlier refactor if any, wait, it should be editingProduct
-      {
-        onSuccess: () => setIsModalOpen(false),
-      }
-    );
-  };
-  
-  // Correction: I noticed a variable name error in my thought process, I'll fix it in the actual code below.
-  const handleFinalSubmit = async (e) => {
-    e.preventDefault();
-    const mutation = editingProduct ? updateProductMutation : createProductMutation;
-    
-    mutation.mutate(
       editingProduct ? { id: editingProduct._id, data: formData } : formData,
       {
         onSuccess: () => setIsModalOpen(false),
@@ -180,7 +167,7 @@ export default function Inventory() {
           <>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button 
-              onClick={handleFinalSubmit}
+              onClick={handleSubmit}
               isLoading={createProductMutation.isPending || updateProductMutation.isPending}
             >
               {editingProduct ? 'Update Item' : 'Save Item'}
@@ -188,7 +175,7 @@ export default function Inventory() {
           </>
         }
       >
-        <form onSubmit={handleFinalSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input 
             className="md:col-span-2"
             label="Item Name *" 

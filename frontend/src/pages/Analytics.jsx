@@ -28,7 +28,7 @@ export default function Analytics() {
     return <PageLoader />;
   }
 
-  const { metrics, charts } = analyticsData.analytics;
+  const { metrics, charts } = analyticsData;
 
   return (
     <div className="space-y-10">
@@ -48,7 +48,7 @@ export default function Analytics() {
         />
         <StatCard 
           title="Avg Order Value" 
-          value={`₹${(metrics.totalRevenue / (analyticsData.analytics.recentActivity.length || 1)).toLocaleString(undefined, {maximumFractionDigits: 0})}`} 
+          value={`₹${(metrics.totalRevenue / (analyticsData.recentActivity?.length || 1)).toLocaleString(undefined, {maximumFractionDigits: 0})}`} 
           icon={ARPathIcon}
           color="purple"
         />
