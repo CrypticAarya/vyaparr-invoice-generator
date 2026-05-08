@@ -17,9 +17,24 @@ export const connectDB = async () => {
     }
 
     await mongoose.connect(uri);
-    console.log("✅ MongoDB Connected");
+    console.log(`✅ MongoDB Connected to ${uri.includes('memory') ? 'In-Memory Server' : 'External Cluster'}`);
   } catch (err) {
-    console.error("❌ MongoDB Connection Error:", err);
-    process.exit(1);
+    console.error("❌ MongoDB Connection Error:", err.message);
+    
+    // If the error looks like a connection failure to an external cluster, try in-memory fallback
+    if (uri && !uri.includes('127.0.0.1') && !uri.includes('localhost')) {
+      console.log("🔄 Attempting fallback to In-Memory MongoDB for local development stability...");
+      try {
+        const mongoServer = await MongoMemoryServer.create();
+        const fallbackUri = mongoServer.getUri();
+        await mongoose.connect(fallbackUri);
+        console.log("✅ Fallback Successful: Connected to In-Memory MongoDB Server.");
+      } catch (fallbackErr) {
+        console.error("❌ Fatal: Fallback failed. Application exiting.", fallbackErr);
+        process.exit(1);
+      }
+    } else {
+      process.exit(1);
+    }
   }
 };

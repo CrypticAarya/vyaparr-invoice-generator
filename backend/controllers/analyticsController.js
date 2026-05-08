@@ -17,12 +17,12 @@ export const getAnalytics = async (req, res) => {
 
     // 2. Calculate Revenue (Any issued invoice: final, paid, partial, overdue)
     const revenueInvoices = invoices.filter(inv => ['final', 'paid', 'partial', 'overdue'].includes(inv.status));
-    const totalRevenue = revenueInvoices.reduce((acc, inv) => acc + (inv.total || 0), 0);
+    const totalRevenue = revenueInvoices.reduce((acc, inv) => acc + (Number(inv.total) || 0), 0);
     
     // 3. Calculate Pending Payments (Total Outstanding across all unpaid/partially paid)
     const pendingPayments = invoices
       .filter(inv => ['final', 'partial', 'overdue'].includes(inv.status))
-      .reduce((acc, inv) => acc + ((inv.total || 0) - (inv.paidAmount || 0)), 0);
+      .reduce((acc, inv) => acc + ((Number(inv.total) || 0) - (Number(inv.paidAmount) || 0)), 0);
 
     // 4. GST Summary
     const totalGST = revenueInvoices.reduce((acc, inv) => acc + (inv.tax || 0), 0);

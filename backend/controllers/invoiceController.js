@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Invoice from '../models/Invoice.js';
 import Client from '../models/Client.js';
 import Product from '../models/Product.js';
@@ -7,7 +8,22 @@ import Product from '../models/Product.js';
  */
 export const createInvoice = async (req, res) => {
   try {
-    const payload = req.body;
+    const payload = { ...req.body };
+    
+    // Validation
+    if (!payload.clientId) return res.status(400).json({ success: false, error: 'Client selection is mandatory.' });
+    if (!payload.items || payload.items.length === 0) return res.status(400).json({ success: false, error: 'Invoice must contain at least one item.' });
+    if (isNaN(payload.total) || payload.total < 0) return res.status(400).json({ success: false, error: 'Invalid total amount.' });
+
+    // Explicitly cast relationships to ObjectId to ensure DB persistence
+    if (payload.clientId) payload.clientId = new mongoose.Types.ObjectId(payload.clientId);
+    if (payload.items) {
+      payload.items = payload.items.map(item => ({
+        ...item,
+        productId: item.productId ? new mongoose.Types.ObjectId(item.productId) : undefined
+      }));
+    }
+
     const newInvoice = new Invoice({
       ...payload,
       userId: req.user.id
@@ -32,14 +48,41 @@ export const getInvoices = async (req, res) => {
 export const updateInvoice = async (req, res) => {
   try {
     const { id } = req.params;
-    const invoice = await Invoice.findOneAndUpdate(
+    const payload = { ...req.body };
+    
+    const existingInvoice = await Invoice.findOne({ _id: id, userId: req.user.id });
+    if (!existingInvoice) return res.status(404).json({ success: false, error: 'Invoice not found' });
+
+    // Delta update for Client Balance if total changed on a non-draft invoice
+    if (existingInvoice.status !== 'draft' && payload.total !== undefined) {
+      const oldOutstanding = (existingInvoice.total || 0) - (existingInvoice.paidAmount || 0);
+      const newOutstanding = (Number(payload.total) || 0) - (existingInvoice.paidAmount || 0);
+      const delta = newOutstanding - oldOutstanding;
+
+      if (delta !== 0 && existingInvoice.clientId) {
+        await Client.findByIdAndUpdate(existingInvoice.clientId, {
+          $inc: { pendingAmount: delta }
+        });
+      }
+    }
+
+    // Explicitly cast relationships for updates
+    if (payload.clientId) payload.clientId = new mongoose.Types.ObjectId(payload.clientId);
+    if (payload.items) {
+      payload.items = payload.items.map(item => ({
+        ...item,
+        productId: item.productId ? new mongoose.Types.ObjectId(item.productId) : undefined
+      }));
+    }
+
+    const updatedInvoice = await Invoice.findOneAndUpdate(
       { _id: id, userId: req.user.id },
-      { $set: req.body },
+      { $set: payload },
       { new: true }
     );
-    if (!invoice) return res.status(404).json({ success: false, error: 'Invoice not found' });
-    res.json({ success: true, invoice });
+    res.json({ success: true, invoice: updatedInvoice });
   } catch (error) {
+    console.error('Update Error:', error);
     res.status(500).json({ success: false, error: 'Failed to update invoice.' });
   }
 };
@@ -62,10 +105,11 @@ export const finalizeInvoice = async (req, res) => {
     invoice.status = 'final';
     await invoice.save();
 
-    // 1. Update Client Pending Balance
+    // 1. Update Client Pending Balance (Outstanding = Total - Already Paid)
     if (invoice.clientId) {
+      const outstanding = (invoice.total || 0) - (invoice.paidAmount || 0);
       await Client.findByIdAndUpdate(invoice.clientId, {
-        $inc: { pendingAmount: invoice.total || 0 }
+        $inc: { pendingAmount: outstanding }
       });
     }
 

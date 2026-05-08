@@ -81,6 +81,7 @@ function Dashboard() {
   
   // Network Lifecycle States
   const [isSaving, setIsSaving] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   
@@ -177,7 +178,7 @@ function Dashboard() {
     }
 
     try {
-      setIsSaving(true);
+      setIsFinalizing(true);
       const result = await finalizeInvoice(invoiceDetails._id);
       if (result.success) {
         setInvoiceDetails(prev => ({ ...prev, status: 'final' }));
@@ -186,7 +187,7 @@ function Dashboard() {
     } catch (err) {
       addToast('Failed to finalize: ' + err.message, 'error');
     } finally {
-      setIsSaving(false);
+      setIsFinalizing(false);
     }
   };
 
@@ -269,7 +270,7 @@ function Dashboard() {
           </button>
           <button
             onClick={handleExportPDF}
-            disabled={isExporting}
+            disabled={isExporting || isSaving || isFinalizing}
             className="px-6 py-2.5 rounded-xl text-[11px] font-black text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-70 flex items-center gap-2 uppercase tracking-widest"
           >
             {isExporting ? 'Generating...' : 'Export PDF'}
@@ -278,11 +279,11 @@ function Dashboard() {
           {invoiceDetails.status !== 'final' && (
             <button
               onClick={handleFinalize}
-              disabled={isSaving}
+              disabled={isSaving || isFinalizing || isExporting}
               className="px-6 py-2.5 rounded-xl text-[11px] font-black text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-70 flex items-center gap-2 uppercase tracking-widest"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Finalize & Issue
+              {isFinalizing ? 'Finalizing...' : 'Finalize & Issue'}
             </button>
           )}
         </div>

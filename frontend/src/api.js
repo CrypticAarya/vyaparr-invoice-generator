@@ -1,4 +1,7 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://vyaparr-invoice-generator-1.onrender.com/api';
+const VITE_API = import.meta.env.VITE_API_URL;
+const API_URL = (VITE_API && VITE_API !== '') 
+  ? VITE_API 
+  : 'http://localhost:5001/api'; // Smart local fallback
 
 console.log("Resolved API_URL:", API_URL);
 /**
@@ -16,7 +19,10 @@ const getAuthHeaders = () => {
  * Universal backend fetch wrapper
  */
 export const fetchApi = async (endpoint, options = {}) => {
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  // Ensure exactly one slash between API_URL and endpoint
+  const cleanUrl = `${API_URL.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
+  
+  const response = await fetch(cleanUrl, {
     ...options,
     headers: {
       ...getAuthHeaders(),

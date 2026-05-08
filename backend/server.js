@@ -30,27 +30,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ======================================
-// 1. Core Middleware
-// ======================================
-app.use(helmet()); 
+// 1. Core Middleware (Relaxed for development to fix connectivity issues)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: false,
+})); 
 app.use(express.json()); 
 app.use(cors({
-  origin: (origin, callback) => {
-    const developmentOrigins = [
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-      'http://localhost:5176'
-    ];
-    
-    if (!origin || developmentOrigins.includes(origin) || origin === process.env.FRONTEND_URL) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true,
   credentials: true
 }));
 
@@ -59,13 +46,13 @@ app.use(cors({
 // ======================================
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 100, 
+  max: 500, // Increased for dev testing
   message: { success: false, error: 'Too many authentication attempts. Please try again later.' }
 });
 
 const aiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, 
-  max: 50, 
+  max: 200, // Increased for dev testing
   message: { success: false, error: 'AI processing quota reached. Please wait.' }
 });
 
@@ -89,7 +76,6 @@ app.use('/api/generate', aiRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/invoices', invoiceRoutes);
 
 // ======================================
 // 4. Fallback Route

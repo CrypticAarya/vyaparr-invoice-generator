@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getAnalytics } from '../api';
-import { DEMO_ANALYTICS } from '../utils/demoData';
+import { INITIAL_EMPTY_ANALYTICS } from '../utils/demoData';
 
 const StatBox = ({ label, value, trend, trendUp, color }) => (
   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="premium-card p-8">
@@ -30,10 +30,10 @@ export default function Analytics() {
       if (result && !result.isNewUser) {
         setData(result);
       } else {
-        setData({ ...DEMO_ANALYTICS, isDemo: true });
+        setData({ ...INITIAL_EMPTY_ANALYTICS, isDemo: false });
       }
     } catch (err) {
-      setData({ ...DEMO_ANALYTICS, isDemo: true });
+      setData({ ...INITIAL_EMPTY_ANALYTICS, isDemo: false });
     } finally {
       setLoading(false);
     }
@@ -58,10 +58,10 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-        <StatBox label="Aggregate Revenue" value={`₹${((data?.totalRevenue || 0) / 100000).toFixed(1)}L`} trend="+14%" trendUp={true} color="indigo" />
-        <StatBox label="Pending AR" value={`₹${((data?.pendingPayments || 0) / 1000).toFixed(0)}K`} trend="-2%" trendUp={false} color="rose" />
-        <StatBox label="GST Reserve" value={`₹${((data?.totalGST || 0) / 1000).toFixed(0)}K`} trend="+5%" trendUp={true} color="amber" />
-        <StatBox label="Active Clients" value={data?.clientCount || 0} trend="+3" trendUp={true} color="emerald" />
+        <StatBox label="Aggregate Revenue" value={`₹${((data?.totalRevenue || 0) / 100000).toFixed(1)}L`} trend={data?.totalRevenue > 0 ? "+14%" : "0%"} trendUp={data?.totalRevenue > 0} color="indigo" />
+        <StatBox label="Pending AR" value={`₹${((data?.pendingPayments || 0) / 1000).toFixed(0)}K`} trend={data?.pendingPayments > 0 ? "-2%" : "0%"} trendUp={false} color="rose" />
+        <StatBox label="GST Reserve" value={`₹${((data?.totalGST || 0) / 1000).toFixed(0)}K`} trend={data?.totalGST > 0 ? "+5%" : "0%"} trendUp={data?.totalGST > 0} color="amber" />
+        <StatBox label="Active Clients" value={data?.clientCount || 0} trend={data?.clientCount > 0 ? "+3" : "0"} trendUp={data?.clientCount > 0} color="emerald" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -69,19 +69,25 @@ export default function Analytics() {
         <div className="lg:col-span-8 premium-card p-10">
           <h3 className="text-xl font-black text-slate-900 mb-8">Revenue Momentum</h3>
           <div className="h-64 w-full flex items-end gap-2 px-2">
-            {(data?.trend || []).map((item, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center group">
-                <div className="w-full relative group">
-                  <motion.div 
-                    initial={{ height: 0 }} animate={{ height: `${(item.revenue / (Math.max(...(data?.trend || [{revenue: 1}]).map(t => t.revenue)) || 1)) * 100}%` }}
-                    className="w-full bg-slate-900 rounded-t-xl transition-all group-hover:bg-indigo-600 relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  </motion.div>
+            {(data?.trend && data.trend.some(t => t.revenue > 0)) ? (
+              data.trend.map((item, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center group">
+                  <div className="w-full relative group">
+                    <motion.div 
+                      initial={{ height: 0 }} animate={{ height: `${(item.revenue / (Math.max(...data.trend.map(t => t.revenue)) || 1)) * 100}%` }}
+                      className="w-full bg-slate-900 rounded-t-xl transition-all group-hover:bg-indigo-600 relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </motion.div>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-400 mt-4 uppercase tracking-widest">{item.month}</span>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 mt-4 uppercase tracking-widest">{item.month}</span>
+              ))
+            ) : (
+              <div className="w-full h-full flex items-center justify-center border-b border-slate-100 mb-6">
+                <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest">No momentum data available</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -89,17 +95,23 @@ export default function Analytics() {
         <div className="lg:col-span-4 premium-card p-10">
           <h3 className="text-xl font-black text-slate-900 mb-8">Top Revenue Sources</h3>
           <div className="space-y-6">
-            {(data?.topClients || []).map((client, i) => (
-              <div key={i} className="flex items-center justify-between group">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xs font-black text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all">
-                    {i + 1}
+            {(data?.topClients && data.topClients.length > 0) ? (
+              data.topClients.map((client, i) => (
+                <div key={i} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xs font-black text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all">
+                      {i + 1}
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">{client.name}</span>
                   </div>
-                  <span className="text-sm font-bold text-slate-700">{client.name}</span>
+                  <span className="text-sm font-black text-slate-900">₹{((client.revenue || 0) / 1000).toFixed(0)}K</span>
                 </div>
-                <span className="text-sm font-black text-slate-900">₹{((client.revenue || 0) / 1000).toFixed(0)}K</span>
+              ))
+            ) : (
+              <div className="py-10 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+                No active revenue streams.
               </div>
-            ))}
+            )}
           </div>
           <button className="w-full mt-10 py-4 bg-slate-50 text-slate-500 text-[11px] font-black rounded-2xl hover:bg-slate-100 hover:text-slate-900 transition-all uppercase tracking-[0.2em]">
             View All Clients

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { NavLink } from 'react-router-dom';
 import { getAnalytics } from '../api';
-import { DEMO_ANALYTICS } from '../utils/demoData';
+import { INITIAL_EMPTY_ANALYTICS } from '../utils/demoData';
 
 const KPIStat = ({ label, value, trend, trendUp, color, sparkline }) => (
   <motion.div
@@ -79,15 +79,13 @@ export default function Home() {
   const loadAnalytics = async () => {
     try {
       const result = await getAnalytics();
-      if (result && !result.isNewUser) {
+      if (result) {
         setData(result);
       } else {
-        // Only show demo if user is absolutely empty
-        setData({ ...DEMO_ANALYTICS, isDemo: true });
+        setData(INITIAL_EMPTY_ANALYTICS);
       }
     } catch (err) {
-      // Fallback to demo on error for UX, but mark it
-      setData({ ...DEMO_ANALYTICS, isDemo: true });
+      setData(INITIAL_EMPTY_ANALYTICS);
     } finally {
       setLoading(false);
     }
@@ -128,20 +126,24 @@ export default function Home() {
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
         <KPIStat 
-          label="Gross Revenue" value={`₹${((data?.totalRevenue || 0) / 100000).toFixed(1)}L`} trend="+14.2%" trendUp={true} color="indigo" 
-          sparkline="M10 30 Q 30 10, 50 25 T 90 10" 
+          label="Gross Revenue" value={`₹${((data?.totalRevenue || 0) / 100000).toFixed(1)}L`} 
+          trend={data?.totalRevenue > 0 ? "+14.2%" : "0%"} trendUp={data?.totalRevenue > 0} color="indigo" 
+          sparkline={data?.totalRevenue > 0 ? "M10 30 Q 30 10, 50 25 T 90 10" : "M10 20 L 90 20"} 
         />
         <KPIStat 
-          label="Pending AR" value={`₹${((data?.pendingPayments || 0) / 100000).toFixed(1)}L`} trend="-2.4%" trendUp={false} color="rose" 
-          sparkline="M10 10 Q 30 30, 50 15 T 90 35" 
+          label="Pending AR" value={`₹${((data?.pendingPayments || 0) / 100000).toFixed(1)}L`} 
+          trend={data?.pendingPayments > 0 ? "-2.4%" : "0%"} trendUp={false} color="rose" 
+          sparkline={data?.pendingPayments > 0 ? "M10 10 Q 30 30, 50 15 T 90 35" : "M10 20 L 90 20"} 
         />
         <KPIStat 
-          label="GST Liability" value={`₹${((data?.totalGST || 0) / 1000).toFixed(1)}K`} trend="+5.8%" trendUp={true} color="amber" 
-          sparkline="M10 35 Q 30 25, 50 30 T 90 15" 
+          label="GST Liability" value={`₹${((data?.totalGST || 0) / 1000).toFixed(1)}K`} 
+          trend={data?.totalGST > 0 ? "+5.8%" : "0%"} trendUp={data?.totalGST > 0} color="amber" 
+          sparkline={data?.totalGST > 0 ? "M10 35 Q 30 25, 50 30 T 90 15" : "M10 20 L 90 20"} 
         />
         <KPIStat 
-          label="Active Clients" value={data?.clientCount || 0} trend="+12.0%" trendUp={true} color="emerald" 
-          sparkline="M10 30 Q 30 20, 50 25 T 90 5" 
+          label="Active Clients" value={data?.clientCount || 0} 
+          trend={data?.clientCount > 0 ? "+12.0%" : "0%"} trendUp={data?.clientCount > 0} color="emerald" 
+          sparkline={data?.clientCount > 0 ? "M10 30 Q 30 20, 50 25 T 90 5" : "M10 20 L 90 20"} 
         />
       </div>
 
@@ -167,28 +169,38 @@ export default function Home() {
             </div>
 
             <div className="h-72 w-full relative group">
-              {/* Premium Area Chart SVG */}
-              <svg className="w-full h-full" viewBox="0 0 800 240" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366f1" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {/* Area */}
-                <motion.path
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
-                  d="M0 240 L0 180 Q 150 220, 300 140 T 600 100 T 800 40 L 800 240 Z"
-                  fill="url(#areaGradient)"
-                />
-                {/* Main Line */}
-                <motion.path
-                  initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2 }}
-                  d="M0 180 Q 150 220, 300 140 T 600 100 T 800 40"
-                  fill="none" stroke="#6366f1" strokeWidth="6" strokeLinecap="round"
-                />
-              </svg>
-              {/* Hover Indicator Line */}
+              {/* Dynamic Revenue Chart */}
+              {(() => {
+                const trend = data?.trend || [];
+                const maxRevenue = Math.max(...trend.map(t => t.revenue)) || 1;
+                const points = trend.map((t, i) => {
+                  const x = (i / (trend.length - 1 || 1)) * 800;
+                  const y = 200 - (t.revenue / maxRevenue) * 160; // Leave space at top
+                  return `${x},${y}`;
+                });
+                
+                const linePath = points.length > 0 ? `M ${points.join(' L ')}` : "M 0,200 L 800,200";
+                const areaPath = points.length > 0 ? `${linePath} L 800,240 L 0,240 Z` : "M 0,200 L 800,200 L 800,240 L 0,240 Z";
+
+                return (
+                  <svg className="w-full h-full" viewBox="0 0 800 240" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <motion.path
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
+                      d={areaPath} fill="url(#areaGradient)"
+                    />
+                    <motion.path
+                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2 }}
+                      d={linePath} fill="none" stroke="#6366f1" strokeWidth="6" strokeLinecap="round"
+                    />
+                  </svg>
+                );
+              })()}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
             </div>
             
@@ -217,18 +229,26 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {data.recentInvoices && data.recentInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
-                      <td className="px-10 py-6 text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors">#{inv.id}</td>
-                      <td className="px-10 py-6 text-sm font-bold text-slate-600">{inv.client}</td>
-                      <td className="px-10 py-6 text-sm font-black text-slate-900">{inv.amount}</td>
-                      <td className="px-10 py-6">
-                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-${inv.color || 'emerald'}-50 text-${inv.color || 'emerald'}-600 border border-${inv.color || 'emerald'}-100`}>
-                          {inv.status}
-                        </span>
+                  {data.recentInvoices && data.recentInvoices.length > 0 ? (
+                    data.recentInvoices.map((inv) => (
+                      <tr key={inv.id} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
+                        <td className="px-10 py-6 text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors">#{inv.id}</td>
+                        <td className="px-10 py-6 text-sm font-bold text-slate-600">{inv.client}</td>
+                        <td className="px-10 py-6 text-sm font-black text-slate-900">{inv.amount}</td>
+                        <td className="px-10 py-6">
+                          <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-${inv.color || 'emerald'}-50 text-${inv.color || 'emerald'}-600 border border-${inv.color || 'emerald'}-100`}>
+                            {inv.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="px-10 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                        No transactions found in this period.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -253,35 +273,49 @@ export default function Home() {
 
           {/* Business Health Analytics - Donut */}
           <div className="premium-card p-10">
-            <h3 className="text-xl font-black text-slate-900 mb-8">Revenue Distribution</h3>
+            <h3 className="text-xl font-black text-slate-900 mb-8">Invoice Pipeline</h3>
             <div className="relative w-48 h-48 mx-auto mb-10">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="12" fill="none" />
-                <motion.circle 
-                  cx="50" cy="50" r="40" stroke="#6366f1" strokeWidth="12" fill="none" 
-                  strokeDasharray="251.2" strokeDashoffset="62.8" // 75%
-                  initial={{ strokeDashoffset: 251.2 }} animate={{ strokeDashoffset: 62.8 }} transition={{ duration: 1.5 }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-black text-slate-900">75%</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Growth</span>
-              </div>
+              {(() => {
+                const dist = data.invoiceDistribution || { drafts: 0, finalized: 0, paid: 0, partial: 0, overdue: 0 };
+                const total = (dist.drafts + dist.finalized + dist.paid + dist.partial + dist.overdue) || 0;
+                const paidPercent = total > 0 ? Math.round((dist.paid / total) * 100) : 0;
+                const offset = 251.2 - (251.2 * paidPercent) / 100;
+                
+                return (
+                  <>
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="12" fill="none" />
+                      <motion.circle 
+                        cx="50" cy="50" r="40" stroke="#6366f1" strokeWidth="12" fill="none" 
+                        strokeDasharray="251.2" strokeDashoffset={offset}
+                        initial={{ strokeDashoffset: 251.2 }} animate={{ strokeDashoffset: offset }} transition={{ duration: 1.5 }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black text-slate-900">{paidPercent}%</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Settled</span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             <div className="space-y-4">
-              {[
-                { label: 'Subscriptions', value: '75%', color: 'indigo' },
-                { label: 'One-time', value: '15%', color: 'slate-300' },
-                { label: 'Service Fees', value: '10%', color: 'slate-100' }
-              ].map(d => (
-                <div key={d.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full bg-${d.color}`}></div>
-                    <span className="text-[13px] font-bold text-slate-600">{d.label}</span>
+              {(() => {
+                const dist = data.invoiceDistribution || { drafts: 0, finalized: 0, paid: 0, partial: 0, overdue: 0 };
+                return [
+                  { label: 'Paid Invoices', value: dist.paid || 0, color: 'emerald-500' },
+                  { label: 'Pending/Partial', value: (dist.finalized || 0) + (dist.partial || 0) + (dist.overdue || 0), color: 'amber-500' },
+                  { label: 'Open Drafts', value: dist.drafts || 0, color: 'slate-300' }
+                ].map(d => (
+                  <div key={d.label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full bg-${d.color}`}></div>
+                      <span className="text-[13px] font-bold text-slate-600">{d.label}</span>
+                    </div>
+                    <span className="text-[13px] font-black text-slate-900">{d.value}</span>
                   </div>
-                  <span className="text-[13px] font-black text-slate-900">{d.value}</span>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
 
@@ -294,9 +328,9 @@ export default function Home() {
               <h3 className="text-xl font-black">AI Intelligence</h3>
             </div>
             <p className="text-md text-indigo-100 leading-relaxed font-bold mb-10">
-              {data.isDemo ? 
-                `"System optimization complete. You have 3 overdue invoices totaling ₹2.1L. Automated escalation advised for Tesla Energy."` :
-                `"Business Intelligence: You have ${data.invoiceDistribution?.overdue || 0} overdue invoices. Gross Revenue is at ₹${((data.totalRevenue || 0) / 100000).toFixed(2)}L for this period."`
+              {data && !data.isDemo ? 
+                `"Business Intelligence: You have ${data.invoiceDistribution?.overdue || 0} overdue invoices. Gross Revenue is at ₹${((data.totalRevenue || 0) / 100000).toFixed(2)}L for this period."` :
+                `"System optimization complete. You have 3 overdue invoices totaling ₹2.1L. Automated escalation advised for Tesla Energy."`
               }
             </p>
             <button className="w-full py-4 bg-white text-indigo-600 font-black rounded-2xl text-xs hover:bg-indigo-50 transition-all shadow-xl shadow-indigo-900/20 active:scale-95">
