@@ -209,3 +209,87 @@ export const logoutUser = catchAsync(async (req, res, next) => {
 
   res.json({ success: true, message: 'Session closed successfully.' });
 });
+
+/**
+ * 6. Password Recovery (Forgot Password)
+ * Generates a secure, temporary reset token and creates an audit trail.
+ * Note: In a full production app, this would trigger an email via a mail service.
+ */
+export const forgotPassword = catchAsync(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    // Security Best Practice: We don't reveal if a user exists or not.
+    // However, for this MVP, we provide a clear error for easier debugging.
+    return next(new AppError('No account found with that email address.', 404));
+  }
+
+  // createToken is a helper on the User model that generates a hashed token.
+  const resetToken = user.createToken('passwordReset');
+  await user.save({ validateBeforeSave: false });
+
+  auditLogger.log('PASSWORD_RESET_REQUESTED', { userId: user._id, email: user.email });
+
+  // For this version, we return the token in the response for demo/testing.
+  res.json({ 
+    success: true, 
+    message: 'Reset instructions have been generated.',
+    demoToken: resetToken // REMOVE THIS in a real production environment
+  });
+});
+
+/**
+ * 7. Password Reset
+ * Validates the hashed token and updates the user's password securely.
+ */
+export const resetPassword = catchAsync(async (req, res, next) => {
+  // Hash the provided token to match the one stored in our DB.
+  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() } // Ensure token hasn't expired (1 hour).
+  });
+
+  if (!user) {
+    auditLogger.log('PASSWORD_RESET_FAILURE', { reason: 'INVALID_OR_EXPIRED_TOKEN' });
+    return next(new AppError('The reset link is invalid or has expired. Please request a new one.', 400));
+  }
+
+  // Update password and clear the reset fields.
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(req.body.password, salt);
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  
+  await user.save();
+
+  auditLogger.log('PASSWORD_RESET_SUCCESS', { userId: user._id });
+
+  res.json({ success: true, message: 'Your password has been updated successfully.' });
+});
+
+/**
+ * 8. Email Verification
+ * Confirms the user's email address using a secure verification token.
+ */
+export const verifyEmail = catchAsync(async (req, res, next) => {
+  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+  const user = await User.findOne({
+    verificationToken: hashedToken,
+    verificationExpires: { $gt: Date.now() }
+  });
+
+  if (!user) {
+    return next(new AppError('Verification link is invalid or has expired.', 400));
+  }
+
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  user.verificationExpires = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  auditLogger.log('EMAIL_VERIFIED', { userId: user._id });
+
+  res.json({ success: true, message: 'Email confirmed! Your account is now fully active.' });
+});
