@@ -93,6 +93,14 @@ export const signupUser = (name, email, password) => api.post('/auth/signup', { 
 export const loginUser = (email, password) => api.post('/auth/login', { email, password });
 export const logoutUser = () => api.post('/auth/logout');
 export const updateProfile = (data) => api.put('/auth/profile', data).then(res => res.data.user);
+export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
+export const resetPassword = (token, password) => api.post(`/auth/reset-password/${token}`, { password });
+
+// --- Utilities ---
+export const fetchApi = (endpoint, options = {}) => {
+  const method = options.method?.toLowerCase() || 'get';
+  return api[method](endpoint, options.body ? JSON.parse(options.body) : undefined);
+};
 
 // --- Invoices ---
 export const getInvoices = () => api.get('/invoices').then(res => res.data.invoices);
