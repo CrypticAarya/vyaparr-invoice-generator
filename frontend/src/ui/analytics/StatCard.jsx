@@ -8,7 +8,10 @@ const StatCard = ({ title, value, subValue, trend, icon: Icon, color = 'indigo' 
     amber: 'bg-amber-50 text-amber-600',
     rose: 'bg-rose-50 text-rose-600',
     slate: 'bg-slate-50 text-slate-600',
+    purple: 'bg-purple-50 text-purple-600',
   };
+
+  const colorClass = colors[color] || colors.indigo;
 
   return (
     <Card className="relative overflow-hidden group">
@@ -27,13 +30,13 @@ const StatCard = ({ title, value, subValue, trend, icon: Icon, color = 'indigo' 
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl transition-transform group-hover:scale-110 ${colors[color]}`}>
+        <div className={`p-4 rounded-2xl transition-transform group-hover:scale-110 ${colorClass}`}>
           <Icon className="w-6 h-6" />
         </div>
       </div>
 
       {/* Subtle Background Accent */}
-      <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full opacity-[0.03] group-hover:opacity-[0.05] transition-opacity ${colors[color].split(' ')[0]}`} />
+      <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full opacity-[0.03] group-hover:opacity-[0.05] transition-opacity ${colorClass.split(' ')[0]}`} />
     </Card>
   );
 };
