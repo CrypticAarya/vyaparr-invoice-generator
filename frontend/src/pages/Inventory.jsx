@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../api';
 import { useToast } from '../context/ToastContext';
-import { DEMO_PRODUCTS } from '../utils/demoData';
+
 
 export default function Inventory() {
   const [products, setProducts] = useState([]);

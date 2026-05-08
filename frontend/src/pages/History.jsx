@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getInvoices, deleteInvoice } from '../api';
 import { useToast } from '../context/ToastContext';
-import { DEMO_INVOICES } from '../utils/demoData';
+
 import { useNavigate } from 'react-router-dom';
 
 export default function History() {
@@ -20,13 +20,10 @@ export default function History() {
     try {
       const data = await getInvoices();
       const filtered = (data || []).filter(inv => inv.status !== 'draft');
-      if (filtered.length > 0) {
-        setInvoices(filtered);
-      } else {
-        setInvoices(DEMO_INVOICES.filter(i => i.status === 'final'));
-      }
+      setInvoices(filtered);
     } catch (err) {
-      setInvoices(DEMO_INVOICES.filter(i => i.status === 'final'));
+      console.error(err);
+      setInvoices([]);
     } finally {
       setLoading(false);
     }

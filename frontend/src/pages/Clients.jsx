@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getClients, createClient, updateClient, deleteClient } from '../api';
 import { useToast } from '../context/ToastContext';
-import { DEMO_CLIENTS } from '../utils/demoData';
+
 import { useNavigate } from 'react-router-dom';
 
 export default function Clients() {

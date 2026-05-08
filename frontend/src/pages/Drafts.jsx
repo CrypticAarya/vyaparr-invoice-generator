@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getInvoices, deleteInvoice } from '../api';
 import { useToast } from '../context/ToastContext';
-import { DEMO_INVOICES } from '../utils/demoData';
+
 import { useNavigate } from 'react-router-dom';
 
 export default function Drafts() {
@@ -19,13 +19,10 @@ export default function Drafts() {
     try {
       const data = await getInvoices();
       const filtered = (data || []).filter(inv => inv.status === 'draft');
-      if (filtered.length > 0) {
-        setDrafts(filtered);
-      } else {
-        setDrafts(DEMO_INVOICES.filter(i => i.status === 'draft'));
-      }
+      setDrafts(filtered);
     } catch (err) {
-      setDrafts(DEMO_INVOICES.filter(i => i.status === 'draft'));
+      console.error(err);
+      setDrafts([]);
     } finally {
       setLoading(false);
     }
