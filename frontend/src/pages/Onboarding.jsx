@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { updateProfile } from '../api';
 
+import TextArea from '../ui/TextArea';
+import Button from '../ui/Button';
+
 const Onboarding = () => {
   const { user, login } = useAuth();
   const { addToast } = useToast();
@@ -122,10 +125,12 @@ const Onboarding = () => {
                   </div>
                   
                   <div className="mt-auto pt-8 border-t border-slate-100 flex justify-end">
-                    <button onClick={handleNext} className="px-8 py-3 bg-slate-900 hover:bg-indigo-600 text-white text-sm font-black rounded-xl transition-all shadow-md flex items-center gap-2 uppercase tracking-widest">
+                    <Button 
+                      onClick={handleNext}
+                      icon={() => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>}
+                    >
                       Continue
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
-                    </button>
+                    </Button>
                   </div>
                 </motion.div>
               )}
@@ -147,18 +152,27 @@ const Onboarding = () => {
                         <input name="gstin" value={formData.gstin} onChange={handleChange} placeholder="27AAACR1234A1Z1" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all uppercase" />
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Registered Address</label>
-                        <textarea name="businessAddress" value={formData.businessAddress} onChange={handleChange} placeholder="123 Corporate Blvd, Mumbai" rows={3} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none" />
+                        <TextArea 
+                          label="Registered Address" 
+                          name="businessAddress" 
+                          value={formData.businessAddress} 
+                          onChange={handleChange} 
+                          placeholder="123 Corporate Blvd, Mumbai" 
+                          rows={3} 
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-auto pt-8 border-t border-slate-100 flex justify-between">
-                    <button onClick={handlePrev} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-black rounded-xl transition-all uppercase tracking-widest">Back</button>
-                    <button onClick={handleNext} disabled={!formData.businessName.trim()} className="px-8 py-3 bg-slate-900 hover:bg-indigo-600 text-white text-sm font-black rounded-xl transition-all shadow-md flex items-center gap-2 uppercase tracking-widest disabled:opacity-50">
+                    <Button variant="secondary" onClick={handlePrev}>Back</Button>
+                    <Button 
+                      onClick={handleNext} 
+                      disabled={!formData.businessName.trim()}
+                      icon={() => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>}
+                    >
                       Continue
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
-                    </button>
+                    </Button>
                   </div>
                 </motion.div>
               )}
@@ -189,18 +203,25 @@ const Onboarding = () => {
                       <div className="h-[1px] flex-1 bg-slate-200"></div>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Bank Account Details (NEFT/RTGS)</label>
-                      <textarea name="bankDetails" value={formData.bankDetails} onChange={handleChange} placeholder="Account Name: Acme Corp\nA/C No: 1234567890\nIFSC: HDFC0001234\nBank: HDFC Bank" rows={4} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none leading-relaxed" />
-                    </div>
+                    <TextArea 
+                      label="Bank Account Details (NEFT/RTGS)" 
+                      name="bankDetails" 
+                      value={formData.bankDetails} 
+                      onChange={handleChange} 
+                      placeholder="Account Name: Acme Corp\nA/C No: 1234567890\nIFSC: HDFC0001234\nBank: HDFC Bank" 
+                      rows={4} 
+                    />
                   </div>
 
                   <div className="mt-auto pt-8 border-t border-slate-100 flex justify-between">
-                    <button onClick={handlePrev} disabled={loading} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-black rounded-xl transition-all uppercase tracking-widest">Back</button>
-                    <button onClick={handleSubmit} disabled={loading} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black rounded-xl transition-all shadow-[0_8px_20px_rgb(79,70,229,0.3)] flex items-center gap-2 uppercase tracking-widest">
-                      {loading ? 'Finalizing...' : 'Complete Setup'}
-                      {!loading && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
-                    </button>
+                    <Button variant="secondary" onClick={handlePrev} disabled={loading}>Back</Button>
+                    <Button 
+                      onClick={handleSubmit} 
+                      isLoading={loading}
+                      icon={() => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+                    >
+                      Complete Setup
+                    </Button>
                   </div>
                 </motion.div>
               )}

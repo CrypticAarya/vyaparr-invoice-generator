@@ -10,6 +10,7 @@ import Table, { TableRow, TableCell } from '../ui/Table';
 import Modal from '../ui/Modal';
 import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
+import TextArea from '../ui/TextArea';
 import PageLoader from '../components/PageLoader';
 
 export default function Inventory() {
@@ -252,15 +253,14 @@ export default function Inventory() {
               <option value={28}>28%</option>
             </select>
           </div>
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-[13px] font-black text-slate-700 uppercase tracking-widest ml-1">Description</label>
-            <textarea 
-              value={formData.description} 
-              onChange={(e) => setFormData({...formData, description: e.target.value})} 
-              className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-[14px] font-bold text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-600/20 focus:bg-white transition-all h-24" 
-              placeholder="Brief details about the product or service..." 
-            />
-          </div>
+          <TextArea 
+            className="md:col-span-2"
+            label="Description"
+            value={formData.description} 
+            onChange={(e) => setFormData({...formData, description: e.target.value})} 
+            placeholder="Brief details about the product or service..." 
+            rows={3}
+          />
         </form>
       </Modal>
     </div>

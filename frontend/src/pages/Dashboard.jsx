@@ -9,6 +9,7 @@ import { useToast } from '../context/ToastContext';
 // Custom Hooks for State Isolation
 import { useInvoiceState } from '../hooks/useInvoiceState';
 import { useAiGenerator } from '../hooks/useAiGenerator';
+import Button from '../ui/Button';
 
 // View Components
 
@@ -254,37 +255,39 @@ function Dashboard() {
               Draft Saved
             </motion.span>
           )}
-          <button 
+          <Button 
+            variant="secondary"
             onClick={() => setShowHistory(true)} 
-            className="px-4 py-2.5 text-[11px] font-black text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all uppercase tracking-widest flex items-center gap-2"
+            icon={() => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             History
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleSaveDraft}
-            disabled={isSaving}
-            className="px-5 py-2.5 rounded-xl text-[11px] font-black text-slate-700 bg-white border border-slate-200 hover:bg-hf-50 transition-all shadow-sm uppercase tracking-widest disabled:opacity-50"
+            isLoading={isSaving}
           >
-            {isSaving ? 'Saving...' : 'Save Draft'}
-          </button>
-          <button
+            Save Draft
+          </Button>
+          <Button
             onClick={handleExportPDF}
-            disabled={isExporting || isSaving || isFinalizing}
-            className="px-6 py-2.5 rounded-xl text-[11px] font-black text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-70 flex items-center gap-2 uppercase tracking-widest"
+            isLoading={isExporting}
+            disabled={isSaving || isFinalizing}
+            icon={() => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>}
           >
-            {isExporting ? 'Generating...' : 'Export PDF'}
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-          </button>
+            Export PDF
+          </Button>
           {invoiceDetails.status !== 'final' && (
-            <button
+            <Button
+              variant="primary"
               onClick={handleFinalize}
-              disabled={isSaving || isFinalizing || isExporting}
-              className="px-6 py-2.5 rounded-xl text-[11px] font-black text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-70 flex items-center gap-2 uppercase tracking-widest"
+              isLoading={isFinalizing}
+              disabled={isSaving || isExporting}
+              className="!bg-emerald-600 hover:!bg-emerald-700 shadow-emerald-600/20"
+              icon={() => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              {isFinalizing ? 'Finalizing...' : 'Finalize & Issue'}
-            </button>
+              Finalize & Issue
+            </Button>
           )}
         </div>
       </div>
