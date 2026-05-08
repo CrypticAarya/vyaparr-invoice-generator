@@ -31,7 +31,7 @@ const HistorySidebar = ({ history, onClose, onSelect, onManage }) => {
             <p className="text-slate-400 text-[14px] font-semibold text-center mt-10">No saved invoices yet.</p>
           ) : (
             <div className="flex flex-col gap-4">
-              {history.map((inv) => (
+              {(history || []).map((inv) => (
                 <motion.div
                   whileHover={{ scale: 1.02, y: -2 }}
                   key={inv._id}

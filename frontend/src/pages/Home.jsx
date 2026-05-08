@@ -145,7 +145,7 @@ export default function Home() {
             actions={<NavLink to="/history" className="text-xs font-black text-indigo-600 uppercase hover:underline">View All</NavLink>}
           >
             <div className="space-y-4">
-              {recentActivity.map((activity, idx) => (
+              {(recentActivity || []).map((activity, idx) => (
                 <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl group hover:bg-indigo-50 transition-all cursor-pointer">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
@@ -182,13 +182,13 @@ export default function Home() {
             <ResponsiveContainer width="100%" height="200px">
               <PieChart>
                 <Pie
-                  data={charts.statusDistribution}
+                  data={charts.statusDistribution || []}
                   innerRadius={50}
                   outerRadius={70}
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {charts.statusDistribution.map((entry, index) => (
+                  {(charts.statusDistribution || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>

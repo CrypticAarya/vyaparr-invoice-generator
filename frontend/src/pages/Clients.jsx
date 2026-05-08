@@ -101,7 +101,7 @@ export default function Clients() {
           />
         ) : (
           <Table headers={['Client Name', 'Company / GSTIN', 'Contact', 'Pending', 'Actions']}>
-            {filteredClients.map((client) => (
+            {(filteredClients || []).map((client) => (
               <TableRow key={client._id}>
                 <TableCell>
                   <p className="font-black text-slate-900">{client.name}</p>

@@ -108,7 +108,7 @@ export default function Inventory() {
           />
         ) : (
           <Table headers={['Product / Service', 'HSN/SAC', 'Stock Status', 'Price', 'Tax Slab', 'Actions']}>
-            {filteredProducts.map((p) => (
+            {(filteredProducts || []).map((p) => (
               <TableRow key={p._id}>
                 <TableCell>
                   <div className="flex items-center gap-3">

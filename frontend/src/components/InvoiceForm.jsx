@@ -118,7 +118,7 @@ const InvoiceForm = ({
                   className="bg-transparent border-none text-[10px] font-black text-indigo-600 outline-none hover:text-indigo-800 cursor-pointer text-right w-32"
                 >
                   <option value="">+ Select Client</option>
-                  {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  {(clients || []).map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                 </select>
               )}
             </div>
@@ -154,7 +154,7 @@ const InvoiceForm = ({
                 <button onClick={addItem} className="mt-3 text-xs font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-widest">+ Add First Item</button>
               </div>
             ) : (
-              data.items.map((item, idx) => (
+              (data.items || []).map((item, idx) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: -10 }}
@@ -178,7 +178,7 @@ const InvoiceForm = ({
                             className="bg-transparent border-none text-[9px] font-black text-indigo-600 outline-none hover:text-indigo-800 cursor-pointer"
                           >
                             <option value="">+ From Inventory</option>
-                            {products.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                            {(products || []).map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
                           </select>
                         )}
                       </div>

@@ -9,13 +9,14 @@ const validate = (schema) => (req, res, next) => {
     });
     next();
   } catch (error) {
-    const errorMessages = error.errors.map((err) => ({
-      field: err.path.join('.'),
-      message: err.message,
+    const errorMessages = (error.errors || []).map((err) => ({
+      field: err.path ? err.path.join('.') : 'unknown',
+      message: err.message || 'Invalid value',
     }));
     
     res.status(400).json({
       success: false,
+      message: 'Validation failed',
       errors: errorMessages,
     });
   }

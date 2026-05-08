@@ -170,7 +170,7 @@ export default function CollectionModal({ invoice, onClose, onUpdate }) {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {invoice.communicationLog.map((log, i) => (
+                    {(invoice.communicationLog || []).map((log, i) => (
                       <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                           log.action === 'EMAIL' ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-600'

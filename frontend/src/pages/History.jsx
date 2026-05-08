@@ -88,7 +88,7 @@ export default function History() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {invoices.map((inv) => (
+                {(invoices || []).map((inv) => (
                   <tr key={inv._id} className="hover:bg-slate-50/80 transition-all group">
                     <td className="px-10 py-6">
                       <p className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors">#{inv.invoiceNumber}</p>

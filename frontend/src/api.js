@@ -70,8 +70,13 @@ api.interceptors.response.use(
       }
     }
 
-    // Pass through structured error messages from the backend or the raw error.
-    return Promise.reject(error.response?.data || error.message);
+    // Pass through structured error messages from the backend or a sanitized fallback.
+    const errorData = error.response?.data || { 
+      success: false, 
+      message: error.message || 'The workstation could not complete this request.',
+      errors: [] 
+    };
+    return Promise.reject(errorData);
   }
 );
 

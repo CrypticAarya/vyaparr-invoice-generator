@@ -65,7 +65,7 @@ export default function Drafts() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence mode='popLayout'>
-            {drafts.map((draft) => (
+            {(drafts || []).map((draft) => (
               <motion.div
                 key={draft._id}
                 layout

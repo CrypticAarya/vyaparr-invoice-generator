@@ -14,6 +14,7 @@ const sendErrorProd = (err, res) => {
     res.status(err.statusCode).json({
       success: false,
       message: err.message,
+      errors: err.errors || []
     });
   } 
   // Programming or other unknown error: don't leak error details
@@ -22,6 +23,7 @@ const sendErrorProd = (err, res) => {
     res.status(500).json({
       success: false,
       message: 'Something went very wrong!',
+      errors: []
     });
   }
 };
@@ -48,7 +50,7 @@ const errorMiddleware = (err, req, res, next) => {
       error.isOperational = true;
     }
     if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map((el) => el.message);
+      const errors = Object.values(error.errors || {}).map((el) => el.message);
       error.message = `Invalid input data. ${errors.join('. ')}`;
       error.statusCode = 400;
       error.isOperational = true;
