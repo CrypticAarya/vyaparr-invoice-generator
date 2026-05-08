@@ -1,9 +1,14 @@
 import axios from 'axios';
 
 const VITE_API = import.meta.env.VITE_API_URL;
-const API_URL = (VITE_API && VITE_API !== '') 
+let API_URL = (VITE_API && VITE_API !== '') 
   ? VITE_API 
   : 'http://localhost:5001/api';
+
+// Standardize: Ensure the API URL always includes the /api prefix
+if (API_URL && !API_URL.includes('/api')) {
+  API_URL = `${API_URL.replace(/\/$/, '')}/api`;
+}
 
 const api = axios.create({
   baseURL: API_URL,

@@ -22,7 +22,9 @@ const Signup = () => {
     setError('');
 
     try {
-      const { token, user } = await signupUser(formData.name, formData.email, formData.password);
+      const response = await signupUser(formData.name, formData.email, formData.password);
+      const { token, user } = response.data;
+      
       login(user, token);
       addToast('Account created successfully', 'success');
       // Navigate to onboarding flow instead of dashboard

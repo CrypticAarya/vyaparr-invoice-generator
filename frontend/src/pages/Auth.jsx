@@ -22,13 +22,15 @@ const Auth = () => {
     setError('');
 
     try {
-      const { token, user } = await loginUser(formData.email, formData.password);
+      const response = await loginUser(formData.email, formData.password);
+      const { token, user } = response.data;
+      
       login(user, token);
       addToast('Welcome back to Vyapaar Flow!', 'success');
       
       // If user hasn't finished onboarding, route to onboarding, else dashboard
       if (user.isOnboarded) {
-        navigate('/new-invoice');
+        navigate('/home');
       } else {
         navigate('/onboarding');
       }
