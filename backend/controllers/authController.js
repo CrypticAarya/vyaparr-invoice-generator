@@ -4,10 +4,12 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
-import logger from '../utils/logger.js';
+import auditLogger from '../utils/auditLogger.js';
 
-const ACCESS_SECRET = process.env.JWT_SECRET || 'access_secret_key';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'refresh_secret_key';
+// SECURE TOKEN CONFIGURATION:
+// We use a short-lived access token and a longer-lived refresh token for optimal security.
+const ACCESS_SECRET = process.env.JWT_SECRET || 'fallback_access_key';
+const REFRESH_SECRET = process.env.REFRESH_SECRET || 'fallback_refresh_key';
 
 const signTokens = (id) => {
   const accessToken = jwt.sign({ id }, ACCESS_SECRET, { expiresIn: '15m' });
@@ -15,19 +17,25 @@ const signTokens = (id) => {
   return { accessToken, refreshToken };
 };
 
+/**
+ * 1. User Registration
+ * Handles initial account creation and creates an audit trail for compliance.
+ */
 export const signupUser = catchAsync(async (req, res, next) => {
   const { email, password, name } = req.body;
   
   if (!email || !password || !name) {
-    return next(new AppError('All fields are required.', 400));
+    return next(new AppError('All mandatory fields (Name, Email, Password) must be filled.', 400));
   }
 
+  // We check for duplicates early to avoid unnecessary hashing overhead.
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    logger.log('SIGNUP_FAILURE', { email, reason: 'DUPLICATE_EMAIL' });
-    return next(new AppError('Email already registered.', 400));
+    auditLogger.log('SIGNUP_ATTEMPT_DUPLICATE', { email });
+    return next(new AppError('This email is already associated with an account.', 400));
   }
 
+  // Security: Standard bcrypt hashing with a salt factor of 10.
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -41,39 +49,53 @@ export const signupUser = catchAsync(async (req, res, next) => {
   const { accessToken, refreshToken } = signTokens(newUser._id);
   newUser.refreshToken = refreshToken;
   
-  const vToken = newUser.createToken('verification');
+  // Create a verification token for future email confirmation flows.
+  newUser.createToken('verification');
   await newUser.save({ validateBeforeSave: false });
 
-  logger.log('SIGNUP_SUCCESS', { userId: newUser._id, email: newUser.email });
+  auditLogger.log('SIGNUP_SUCCESS', { userId: newUser._id, email: newUser.email });
 
   res.status(201).json({
     success: true,
     data: {
       token: accessToken,
       refreshToken,
-      user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, isVerified: false }
+      user: { 
+        id: newUser._id, 
+        name: newUser.name, 
+        email: newUser.email, 
+        role: newUser.role, 
+        isVerified: false,
+        isOnboarded: false 
+      }
     }
   });
 });
 
+/**
+ * 2. User Authentication (Login)
+ * Validates credentials and initializes the secure session.
+ */
 export const loginUser = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return next(new AppError('Please provide email and password.', 400));
+    return next(new AppError('Please provide both your email and password to continue.', 400));
   }
 
+  // We explicitly select '+password' because it's hidden by default in the schema for security.
   const user = await User.findOne({ email }).select('+password');
+  
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    logger.log('LOGIN_FAILURE', { email });
-    return next(new AppError('Invalid credentials.', 401));
+    auditLogger.log('LOGIN_FAILURE_INVALID_CREDENTIALS', { email });
+    return next(new AppError('The credentials provided do not match our records.', 401));
   }
 
   const { accessToken, refreshToken } = signTokens(user._id);
   user.refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false });
 
-  logger.log('LOGIN_SUCCESS', { userId: user._id, email: user.email });
+  auditLogger.log('LOGIN_SUCCESS', { userId: user._id, email: user.email });
 
   res.json({
     success: true,
@@ -81,27 +103,36 @@ export const loginUser = catchAsync(async (req, res, next) => {
       token: accessToken,
       refreshToken,
       user: { 
-        id: user._id, name: user.name, email: user.email, role: user.role, 
-        isVerified: user.isVerified, isOnboarded: user.isOnboarded 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role, 
+        isVerified: user.isVerified, 
+        isOnboarded: user.isOnboarded 
       }
     }
   });
 });
 
+/**
+ * 3. Token Lifecycle Management
+ * Silent refresh to keep the user logged in without frequent credential prompts.
+ */
 export const refreshAccessToken = catchAsync(async (req, res, next) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
-    return next(new AppError('Refresh token required.', 400));
+    return next(new AppError('Session expired. Please log in again.', 400));
   }
 
   try {
     const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
     const user = await User.findById(decoded.id);
 
+    // Security: Check if the token matches the one stored in our DB (Revocation Check).
     if (!user || user.refreshToken !== refreshToken) {
-      logger.log('TOKEN_REFRESH_FAILURE', { reason: 'INVALID_TOKEN' });
-      return next(new AppError('Invalid refresh token.', 401));
+      auditLogger.log('REFRESH_FAILURE_TOKEN_MISMATCH', { userId: decoded.id });
+      return next(new AppError('Invalid session. For your security, please log in again.', 401));
     }
 
     const tokens = signTokens(user._id);
@@ -116,109 +147,65 @@ export const refreshAccessToken = catchAsync(async (req, res, next) => {
       }
     });
   } catch (err) {
-    logger.log('TOKEN_REFRESH_FAILURE', { reason: 'EXPIRED_OR_MALFORMED' });
-    return next(new AppError('Invalid or expired refresh token.', 401));
+    auditLogger.log('REFRESH_FAILURE_EXPIRED', { reason: err.message });
+    return next(new AppError('Your session has expired. Please log in.', 401));
   }
 });
 
-export const logoutUser = catchAsync(async (req, res, next) => {
-  const user = await User.findById(req.user.id);
-  if (user) {
-    user.refreshToken = undefined;
-    await user.save({ validateBeforeSave: false });
-    logger.log('LOGOUT_SUCCESS', { userId: user._id });
-  }
-
-  res.json({ success: true, message: 'Logged out successfully.' });
-});
-
-export const forgotPassword = catchAsync(async (req, res, next) => {
-  const user = await User.findOne({ email: req.body.email });
-  if (!user) {
-    return next(new AppError('No user found with that email.', 404));
-  }
-
-  const resetToken = user.createToken('passwordReset');
-  await user.save({ validateBeforeSave: false });
-
-  logger.log('PASSWORD_RESET_REQUESTED', { userId: user._id, email: user.email });
-
-  res.json({ success: true, message: 'Reset token sent to email.' });
-});
-
-export const resetPassword = catchAsync(async (req, res, next) => {
-  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-
-  const user = await User.findOne({
-    passwordResetToken: hashedToken,
-    passwordResetExpires: { $gt: Date.now() }
-  });
-
-  if (!user) {
-    logger.log('PASSWORD_RESET_FAILURE', { reason: 'INVALID_TOKEN' });
-    return next(new AppError('Token is invalid or has expired.', 400));
-  }
-
-  const salt = await bcrypt.genSalt(10);
-  user.password = await bcrypt.hash(req.body.password, salt);
-  user.passwordResetToken = undefined;
-  user.passwordResetExpires = undefined;
-  
-  await user.save();
-
-  logger.log('PASSWORD_RESET_SUCCESS', { userId: user._id });
-
-  res.json({ success: true, message: 'Password reset successful.' });
-});
-
-export const verifyEmail = catchAsync(async (req, res, next) => {
-  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-
-  const user = await User.findOne({
-    verificationToken: hashedToken,
-    verificationExpires: { $gt: Date.now() }
-  });
-
-  if (!user) {
-    return next(new AppError('Token is invalid or has expired.', 400));
-  }
-
-  user.isVerified = true;
-  user.verificationToken = undefined;
-  user.verificationExpires = undefined;
-  await user.save({ validateBeforeSave: false });
-
-  logger.log('EMAIL_VERIFIED', { userId: user._id });
-
-  res.json({ success: true, message: 'Email verified successfully.' });
-});
-
+/**
+ * 4. Profile & Business Settings
+ * Updates the user's business identity after onboarding or from settings.
+ */
 export const updateProfile = catchAsync(async (req, res, next) => {
-  const { businessName, businessAddress, businessType, upiId, bankDetails } = req.body;
-  
   const user = await User.findById(req.user.id);
   if (!user) {
-    return next(new AppError('User profile not found.', 404));
+    return next(new AppError('Could not locate your user profile.', 404));
   }
 
-  user.businessName = businessName;
-  user.businessAddress = businessAddress;
-  user.businessType = businessType || user.businessType;
-  user.upiId = upiId;
-  user.bankDetails = bankDetails;
-  user.isOnboarded = true;
+  // We only update fields that were actually provided in the request.
+  const fields = ['businessName', 'businessAddress', 'businessType', 'upiId', 'bankDetails'];
+  fields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      user[field] = req.body[field];
+    }
+  });
 
+  user.isOnboarded = true; // Flag as complete once profile is first saved.
   await user.save();
   
+  auditLogger.log('PROFILE_UPDATE_SUCCESS', { userId: user._id });
+
   res.json({
     success: true,
     data: {
       user: {
-        id: user._id, name: user.name, email: user.email, role: user.role,
-        isVerified: user.isVerified, isOnboarded: user.isOnboarded,
-        businessName: user.businessName, businessAddress: user.businessAddress,
-        businessType: user.businessType, upiId: user.upiId, bankDetails: user.bankDetails
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        isVerified: user.isVerified, 
+        isOnboarded: user.isOnboarded,
+        businessName: user.businessName, 
+        businessAddress: user.businessAddress,
+        businessType: user.businessType, 
+        upiId: user.upiId, 
+        bankDetails: user.bankDetails
       }
     }
   });
+});
+
+/**
+ * 5. Secure Logout
+ * Invalidates the refresh token to end the session immediately.
+ */
+export const logoutUser = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user.id);
+  if (user) {
+    user.refreshToken = undefined; // Revoke the token
+    await user.save({ validateBeforeSave: false });
+    auditLogger.log('LOGOUT_SUCCESS', { userId: user._id });
+  }
+
+  res.json({ success: true, message: 'Session closed successfully.' });
 });
