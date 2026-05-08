@@ -96,5 +96,6 @@ export const getAnalytics = (range) => api.get(`/analytics?range=${range || '1Y'
 export const generateAiItems = (prompt) => api.post('/generate', { prompt });
 export const getAiInsights = () => api.get('/generate/insights').then(res => res.insights);
 export const updateProfile = (data) => api.put('/auth/profile', data).then(res => res.user);
+export const logCommunication = (id, data) => api.post(`/invoices/communication/${id}`, data);
 
 export default api;

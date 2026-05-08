@@ -59,7 +59,7 @@ const limiter = rateLimit({
   max: process.env.NODE_ENV === 'production' ? 100 : 1000,
   message: { success: false, error: 'Too many requests. Please try again later.' }
 });
-app.use('/api/', limiter);
+app.use('/api', limiter);
 
 // 3. Application Routing
 app.get('/health', (req, res) => {
@@ -74,8 +74,11 @@ app.use('/api/products', productRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
 // 4. Fallback & Error Handling
-app.all('(.*)', (req, res, next) => {
-  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: `Route not found: ${req.originalUrl}`
+  });
 });
 
 app.use(errorMiddleware);
