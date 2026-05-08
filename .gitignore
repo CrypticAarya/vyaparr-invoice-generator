@@ -1,7 +1,54 @@
+# Dependency directories
 node_modules/
+jspm_packages/
+
+# Environment files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Build and distribution
 dist/
 build/
-**pycache**/
+out/
+.next/
+.cache/
+*.tsbuildinfo
+
+# Logs
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.settings/
+
+# Misc
+.cache/
+.eslintcache
+.stylelintcache
+*.local

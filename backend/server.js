@@ -6,7 +6,6 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-// Environment variable initialization
 dotenv.config();
 
 import { connectDB } from './config/db.js';
@@ -16,58 +15,55 @@ import aiRoutes from './routes/aiRoutes.js';
 import clientRoutes from './routes/clientRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import AppError from './utils/AppError.js';
+import errorMiddleware from './middleware/errorMiddleware.js';
 
-// Ensure the application fails fast if critical configuration is missing
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('FATAL ERROR: JWT_SECRET must be defined in production environments.');
+  console.error('FATAL ERROR: JWT_SECRET must be defined in production.');
   process.exit(1);
 }
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Application instantiation
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// 1. Core Middleware (Relaxed for development to fix connectivity issues)
+// 1. Production Security Hardening
+app.set('trust proxy', 1); // Required for Render/Vercel rate limiting
+
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
   crossOriginResourcePolicy: false,
-})); 
-app.use(express.json()); 
+}));
+
+app.use(express.json({ limit: '10kb' })); // Body limit to prevent DOS
+
+// Production-ready CORS
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
-// ======================================
-// 2. Security: Rate Limiting
-// ======================================
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 500, // Increased for dev testing
-  message: { success: false, error: 'Too many authentication attempts. Please try again later.' }
+// 2. Rate Limiting (Production Scales)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000,
+  message: { success: false, error: 'Too many requests. Please try again later.' }
 });
+app.use('/api/', limiter);
 
-const aiLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, 
-  max: 200, // Increased for dev testing
-  message: { success: false, error: 'AI processing quota reached. Please wait.' }
-});
-
-app.use('/api/auth/', authLimiter);
-app.use('/api/generate', aiLimiter);
-
-// ======================================
-// 3. Application Routing 
-// ======================================
-app.get('/', (req, res) => {
-  res.send("API is running 🚀");
-});
-
-app.get('/api/test', (req, res) => {
-  res.json({ success: true, message: 'API Gateway is Operational' });
+// 3. Application Routing
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'UP', timestamp: new Date() });
 });
 
 app.use('/api/auth', authRoutes);
@@ -77,21 +73,18 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// ======================================
-// 4. Fallback Route
-// ======================================
-app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+// 4. Fallback & Error Handling
+app.all('(.*)', (req, res, next) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
-// ======================================
-// 5. Server Startup Pattern
-// ======================================
+app.use(errorMiddleware);
+
 async function startServer() {
   try {
     await connectDB();
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🚀 Production server running on port ${PORT}`);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);

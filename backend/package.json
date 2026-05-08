@@ -16,7 +16,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.2.0",
     "mongoose": "^9.4.1",
-    "openai": "^6.34.0"
+    "openai": "^6.34.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.0.1"

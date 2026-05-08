@@ -12,6 +12,12 @@ const productSchema = new mongoose.Schema({
   gstSlab: { type: Number, default: 18 },
   unit: { type: String, default: 'PCS' },
   description: String,
+  
+  // Inventory Fields
+  stockQuantity: { type: Number, default: 0 },
+  lowStockThreshold: { type: Number, default: 5 },
+  isService: { type: Boolean, default: false },
+  
   usageCount: { type: Number, default: 0 },
   totalRevenueGenerated: { type: Number, default: 0 }
 }, { timestamps: true });

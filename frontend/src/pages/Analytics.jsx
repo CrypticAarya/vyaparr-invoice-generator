@@ -1,122 +1,168 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { getAnalytics } from '../api';
-import { INITIAL_EMPTY_ANALYTICS } from '../utils/demoData';
+import React from 'react';
+import { useAnalytics } from '../hooks/useAnalytics';
+import { useAiInsights } from '../hooks/useAiInsights';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line
+} from 'recharts';
 
-const StatBox = ({ label, value, trend, trendUp, color }) => (
-  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="premium-card p-8">
-    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3">{label}</p>
-    <h3 className="text-3xl font-black text-slate-900 mb-4">{value}</h3>
-    <div className="flex items-center gap-2">
-      <span className={`text-[10px] font-black px-2 py-0.5 rounded ${trendUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-        {trend}
-      </span>
-      <span className="text-[10px] font-bold text-slate-400 uppercase">Growth Index</span>
-    </div>
-  </motion.div>
-);
+// UI Components
+import SectionHeader from '../ui/SectionHeader';
+import PageLoader from '../components/PageLoader';
+import StatCard from '../ui/analytics/StatCard';
+import ChartCard from '../ui/analytics/ChartCard';
+import Badge from '../ui/Badge';
+import AIAlert from '../ui/ai/AIAlert';
+
+// Icons
+const RevenueIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const ARPathIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>;
+const ProductIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>;
+const ClientIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
 
 export default function Analytics() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: analyticsData, isLoading } = useAnalytics();
+  const { data: aiInsights, isLoading: isAiLoading } = useAiInsights();
 
-  useEffect(() => {
-    loadAnalytics();
-  }, []);
-
-  const loadAnalytics = async () => {
-    try {
-      const result = await getAnalytics();
-      if (result && !result.isNewUser) {
-        setData(result);
-      } else {
-        setData({ ...INITIAL_EMPTY_ANALYTICS, isDemo: false });
-      }
-    } catch (err) {
-      setData({ ...INITIAL_EMPTY_ANALYTICS, isDemo: false });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading || !data) {
-    return <div className="p-20 flex justify-center"><div className="w-10 h-10 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin"></div></div>;
+  if (isLoading || !analyticsData) {
+    return <PageLoader />;
   }
 
+  const { metrics, charts } = analyticsData.analytics;
+
   return (
-    <div className="page-container">
-      <div className="mb-12">
-        <div className="flex items-center gap-3 mb-2">
-          {data.isDemo ? (
-            <span className="px-3 py-1 bg-amber-500 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-amber-500/20">Preview Mode</span>
-          ) : (
-            <span className="px-3 py-1 bg-emerald-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-emerald-500/20">Verified Truth</span>
-          )}
-        </div>
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Business Intelligence</h1>
-        <p className="text-slate-500 font-bold text-lg mt-2">Deep analytics and revenue forecasting for your enterprise.</p>
+    <div className="space-y-10">
+      <SectionHeader 
+        title="Business Intelligence" 
+        description="Deep dive into your revenue streams, product performance, and customer lifetime value."
+      />
+
+      {/* KPI Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title="Gross Revenue" 
+          value={`₹${(metrics.totalRevenue || 0).toLocaleString()}`} 
+          trend={metrics.revenueGrowth} 
+          icon={RevenueIcon}
+          color="indigo"
+        />
+        <StatCard 
+          title="Avg Order Value" 
+          value={`₹${(metrics.totalRevenue / (analyticsData.analytics.recentActivity.length || 1)).toLocaleString(undefined, {maximumFractionDigits: 0})}`} 
+          icon={ARPathIcon}
+          color="purple"
+        />
+        <StatCard 
+          title="Active Products" 
+          value={metrics.productCount} 
+          subValue={`${metrics.outOfStockCount} Out of stock`}
+          icon={ProductIcon}
+          color="amber"
+        />
+        <StatCard 
+          title="Total Customers" 
+          value={metrics.clientCount} 
+          icon={ClientIcon}
+          color="emerald"
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-        <StatBox label="Aggregate Revenue" value={`₹${((data?.totalRevenue || 0) / 100000).toFixed(1)}L`} trend={data?.totalRevenue > 0 ? "+14%" : "0%"} trendUp={data?.totalRevenue > 0} color="indigo" />
-        <StatBox label="Pending AR" value={`₹${((data?.pendingPayments || 0) / 1000).toFixed(0)}K`} trend={data?.pendingPayments > 0 ? "-2%" : "0%"} trendUp={false} color="rose" />
-        <StatBox label="GST Reserve" value={`₹${((data?.totalGST || 0) / 1000).toFixed(0)}K`} trend={data?.totalGST > 0 ? "+5%" : "0%"} trendUp={data?.totalGST > 0} color="amber" />
-        <StatBox label="Active Clients" value={data?.clientCount || 0} trend={data?.clientCount > 0 ? "+3" : "0"} trendUp={data?.clientCount > 0} color="emerald" />
-      </div>
+      {/* AI Predictive Section */}
+      {!isAiLoading && aiInsights && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <AIAlert 
+            type="info" 
+            title="Revenue Forecast" 
+            text={aiInsights.predictions.revenueForecast} 
+          />
+          <AIAlert 
+            type={aiInsights.predictions.riskLevel === 'Low' ? 'success' : 'warning'} 
+            title="Risk Assessment" 
+            text={`Current business risk level is ${aiInsights.predictions.riskLevel}. ${aiInsights.healthSummary}`} 
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Revenue Trend Chart */}
-        <div className="lg:col-span-8 premium-card p-10">
-          <h3 className="text-xl font-black text-slate-900 mb-8">Revenue Momentum</h3>
-          <div className="h-64 w-full flex items-end gap-2 px-2">
-            {(data?.trend && data.trend.some(t => t.revenue > 0)) ? (
-              data.trend.map((item, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center group">
-                  <div className="w-full relative group">
-                    <motion.div 
-                      initial={{ height: 0 }} animate={{ height: `${(item.revenue / (Math.max(...data.trend.map(t => t.revenue)) || 1)) * 100}%` }}
-                      className="w-full bg-slate-900 rounded-t-xl transition-all group-hover:bg-indigo-600 relative overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </motion.div>
-                  </div>
-                  <span className="text-[10px] font-black text-slate-400 mt-4 uppercase tracking-widest">{item.month}</span>
-                </div>
-              ))
-            ) : (
-              <div className="w-full h-full flex items-center justify-center border-b border-slate-100 mb-6">
-                <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest">No momentum data available</span>
-              </div>
-            )}
-          </div>
-        </div>
+        <ChartCard 
+          className="lg:col-span-12"
+          title="Revenue Growth Over Time" 
+          description="Detailed monthly revenue tracking with comparison markers"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={charts.revenueTrend}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="label" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}}
+                dy={10}
+              />
+              <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="revenue" 
+                stroke="#6366f1" 
+                strokeWidth={4} 
+                dot={{ r: 6, fill: '#6366f1', strokeWidth: 3, stroke: '#fff' }}
+                activeDot={{ r: 8, strokeWidth: 0 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
 
-        {/* Top Clients */}
-        <div className="lg:col-span-4 premium-card p-10">
-          <h3 className="text-xl font-black text-slate-900 mb-8">Top Revenue Sources</h3>
-          <div className="space-y-6">
-            {(data?.topClients && data.topClients.length > 0) ? (
-              data.topClients.map((client, i) => (
-                <div key={i} className="flex items-center justify-between group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xs font-black text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all">
-                      {i + 1}
-                    </div>
-                    <span className="text-sm font-bold text-slate-700">{client.name}</span>
+        <ChartCard 
+          className="lg:col-span-7"
+          title="Client Contribution" 
+          description="Revenue distribution across your top customers"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={charts.topClients}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="name" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}}
+              />
+              <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
+              />
+              <Bar dataKey="revenue" fill="#818cf8" radius={[8, 8, 0, 0]} barSize={40} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard 
+          className="lg:col-span-5"
+          title="Product Performance" 
+          description="Revenue generated by your inventory"
+        >
+          <div className="space-y-4">
+            {charts.topProducts.map((product, idx) => (
+              <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-black text-slate-400">
+                    {idx + 1}
                   </div>
-                  <span className="text-sm font-black text-slate-900">₹{((client.revenue || 0) / 1000).toFixed(0)}K</span>
+                  <div>
+                    <p className="text-sm font-black text-slate-900">{product.name}</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{product.sales} Sales</p>
+                  </div>
                 </div>
-              ))
-            ) : (
-              <div className="py-10 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
-                No active revenue streams.
+                <div className="text-right">
+                  <p className="text-sm font-black text-slate-900">₹{(product.revenue || 0).toLocaleString()}</p>
+                  <Badge variant="info">Top Tier</Badge>
+                </div>
               </div>
-            )}
+            ))}
           </div>
-          <button className="w-full mt-10 py-4 bg-slate-50 text-slate-500 text-[11px] font-black rounded-2xl hover:bg-slate-100 hover:text-slate-900 transition-all uppercase tracking-[0.2em]">
-            View All Clients
-          </button>
-        </div>
+        </ChartCard>
       </div>
     </div>
   );

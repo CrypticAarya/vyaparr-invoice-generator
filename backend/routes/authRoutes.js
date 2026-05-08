@@ -1,25 +1,30 @@
 import express from 'express';
-import { signupUser, loginUser, updateProfile } from '../controllers/authController.js';
+import { 
+  signupUser, 
+  loginUser, 
+  updateProfile, 
+  refreshAccessToken, 
+  logoutUser, 
+  forgotPassword, 
+  resetPassword, 
+  verifyEmail 
+} from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import validate from '../middleware/validate.js';
+import { signupSchema, loginSchema, updateProfileSchema } from '../validators/authValidator.js';
 
 const router = express.Router();
 
-/**
- * Route: POST /api/auth/signup
- * Description: Registers a new user account.
- */
-router.post('/signup', signupUser);
+// Public Routes
+router.post('/signup', validate(signupSchema), signupUser);
+router.post('/login', validate(loginSchema), loginUser);
+router.post('/refresh', refreshAccessToken);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password/:token', resetPassword);
+router.get('/verify-email/:token', verifyEmail);
 
-/**
- * Route: POST /api/auth/login
- * Description: Authenticates a user and returns a JWT token.
- */
-router.post('/login', loginUser);
-
-/**
- * Route: PUT /api/auth/profile
- * Description: Updates the authenticated user's onboarding profile.
- */
-router.put('/profile', authenticateToken, updateProfile);
+// Protected Routes
+router.post('/logout', authenticateToken, logoutUser);
+router.put('/profile', authenticateToken, validate(updateProfileSchema), updateProfile);
 
 export default router;

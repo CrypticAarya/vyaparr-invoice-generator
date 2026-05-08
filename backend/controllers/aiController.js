@@ -1,31 +1,104 @@
 import OpenAI from 'openai';
+import catchAsync from '../utils/catchAsync.js';
+import AppError from '../utils/AppError.js';
+import AiService from '../services/AiService.js';
+import Invoice from '../models/Invoice.js';
+import Client from '../models/Client.js';
+import Product from '../models/Product.js';
 
-// Initialize the OpenAI client lazily to ensure environment variables are loaded
+// Initialize the OpenAI client lazily
 let openaiClient = null;
 const getOpenAIClient = () => {
   if (!openaiClient) {
     openaiClient = new OpenAI({ 
-      apiKey: process.env.OPENAI_API_KEY || 'dummy_key_to_prevent_crash_at_startup' 
+      apiKey: process.env.OPENAI_API_KEY || 'dummy_key' 
     });
   }
   return openaiClient;
 };
 
 /**
- * Controller that translates raw string prompts into structured invoice line items.
- * Uses OpenAI for NLP interpretation and provides a robust mock fallback if the service fails.
+ * AI Powered Business Insights
+ * Analyzes real application data to provide actionable intelligence.
  */
-export const generateLineItems = async (req, res) => {
+export const getBusinessInsights = catchAsync(async (req, res, next) => {
+  const userId = req.user.id;
+
+  // 1. Fetch data context (Similar to analyticsController but raw)
+  const invoices = await Invoice.find({ userId });
+  const clients = await Client.find({ userId });
+  const products = await Product.find({ userId });
+
+  const revenueInvoices = invoices.filter(inv => ['final', 'paid', 'partial', 'overdue'].includes(inv.status));
+  const totalRevenue = revenueInvoices.reduce((acc, inv) => acc + (Number(inv.total) || 0), 0);
+  
+  const pendingPayments = invoices
+    .filter(inv => ['final', 'partial', 'overdue'].includes(inv.status))
+    .reduce((acc, inv) => acc + ((Number(inv.total) || 0) - (Number(inv.paidAmount) || 0)), 0);
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  const currentMonthRev = revenueInvoices
+    .filter(inv => {
+      const d = new Date(inv.createdAt);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    })
+    .reduce((acc, inv) => acc + (inv.total || 0), 0);
+
+  const lastMonthRev = revenueInvoices
+    .filter(inv => {
+      const d = new Date(inv.createdAt);
+      return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+    })
+    .reduce((acc, inv) => acc + (inv.total || 0), 0);
+
+  const revenueGrowth = lastMonthRev === 0 ? 100 : ((currentMonthRev - lastMonthRev) / lastMonthRev) * 100;
+  const lowStockCount = products.filter(p => !p.isService && p.stockQuantity <= p.lowStockThreshold).length;
+  const inventoryHealth = products.filter(p => !p.isService).length === 0 ? 100 : Math.max(0, ((products.filter(p => !p.isService).length - lowStockCount) / products.filter(p => !p.isService).length) * 100);
+
+  // 2. Aggregate Data for AI Service
+  const dataContext = {
+    metrics: {
+      totalRevenue,
+      revenueGrowth: Math.round(revenueGrowth),
+      pendingPayments,
+      inventoryHealth: Math.round(inventoryHealth),
+      lowStockCount
+    },
+    charts: {
+      topProducts: products
+        .sort((a, b) => (b.totalRevenueGenerated || 0) - (a.totalRevenueGenerated || 0))
+        .slice(0, 3)
+        .map(p => ({ name: p.name, revenue: p.totalRevenueGenerated || 0 })),
+      topClients: [] // Simplified for prompt brevity
+    }
+  };
+
+  // 3. Generate Insights via AI Service
+  const insights = await AiService.generateBusinessInsights(dataContext);
+
+  res.json({
+    success: true,
+    data: { insights }
+  });
+});
+
+/**
+ * Legacy Line Item Generation (Refactored)
+ */
+export const generateLineItems = catchAsync(async (req, res, next) => {
   const { prompt } = req.body;
   
   if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
-    return res.status(400).json({ success: false, error: 'A valid descriptive prompt is required.' });
+    return next(new AppError('A valid descriptive prompt is required.', 400));
   }
 
-  // Check if API Key is configured before attempting the call
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.startsWith('sk-proj-xxx')) {
-    console.warn('⚠️  OPENAI_API_KEY is missing or invalid. Falling back to Mock Generator.');
     return sendMockResponse(res, prompt);
   }
 
@@ -33,18 +106,13 @@ export const generateLineItems = async (req, res) => {
     const client = getOpenAIClient();
     
     const systemPrompt = `
-      You are an expert accountant for "VyaparFlow", a professional invoice generation SaaS.
-      The user will describe a job, project, or service. 
-      Break this down into 1-4 highly realistic, professional line items.
-      Ensure the quantities (qty) and rates are industry-standard for the described work.
-      
+      You are an expert accountant for "VyaparFlow".
+      Break down the prompt into 1-4 professional invoice line items.
       OUTPUT FORMAT (JSON ONLY): 
       { 
-        "items": [ 
-          { "description": "Professional item name", "qty": number, "rate": number } 
-        ], 
-        "notes": "A helpful, professional note about the service", 
-        "suggestedTax": number (0-18)
+        "items": [ { "description": "Professional item name", "qty": number, "rate": number } ], 
+        "notes": "string", 
+        "suggestedTax": number 
       }
     `;
 
@@ -55,43 +123,40 @@ export const generateLineItems = async (req, res) => {
         { role: "system", content: systemPrompt },
         { role: "user", content: `Generate an invoice for: ${prompt}` }
       ],
-      timeout: 10000 // 10 second timeout for responsiveness
+      timeout: 10000
     });
 
     const parsedData = JSON.parse(response.choices[0].message.content);
     
     res.json({
       success: true,
-      items: (parsedData.items || []).map((item, idx) => ({
-        id: `ai_${Date.now()}_${idx}`,
-        description: item.description || 'Consultation Service',
-        qty: Number(item.qty) || 1,
-        rate: Number(item.rate) || 0
-      })),
-      notes: parsedData.notes || 'Generated by VyaparFlow AI. Thank you for your business.',
-      suggestedTax: Number(parsedData.suggestedTax) || 0
+      data: {
+        items: (parsedData.items || []).map((item, idx) => ({
+          id: `ai_${Date.now()}_${idx}`,
+          description: item.description || 'Service',
+          qty: Number(item.qty) || 1,
+          rate: Number(item.rate) || 0
+        })),
+        notes: parsedData.notes || 'Generated by AI.',
+        suggestedTax: Number(parsedData.suggestedTax) || 0
+      }
     });
 
   } catch (error) {
-    console.error('❌ OpenAI API Error:', error.message);
     return sendMockResponse(res, prompt, true);
   }
-};
+});
 
-/**
- * Helper to send a consistent mock response when AI is unavailable or unconfigured.
- */
 const sendMockResponse = (res, prompt, isError = false) => {
   res.json({
     success: true,
-    isMock: true,
-    items: [
-      { id: `mock_${Date.now()}_1`, description: `${prompt.substring(0, 30)}... (Service)`, qty: 1, rate: 850 },
-      { id: `mock_${Date.now()}_2`, description: 'Technical Consultation & Setup', qty: 2, rate: 125 },
-    ],
-    notes: isError 
-      ? "AI service is currently busy. Here's a structured draft based on your prompt." 
-      : "Demo Mode: Configure an OPENAI_API_KEY to enable full AI intelligence.",
-    suggestedTax: 12
+    data: {
+      isMock: true,
+      items: [
+        { id: `mock_${Date.now()}_1`, description: `${prompt.substring(0, 30)}...`, qty: 1, rate: 850 },
+      ],
+      notes: isError ? "AI service busy." : "Demo Mode.",
+      suggestedTax: 18
+    }
   });
 };

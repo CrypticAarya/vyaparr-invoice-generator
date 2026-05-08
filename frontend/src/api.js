@@ -1,196 +1,100 @@
+import axios from 'axios';
+
 const VITE_API = import.meta.env.VITE_API_URL;
 const API_URL = (VITE_API && VITE_API !== '') 
   ? VITE_API 
-  : 'http://localhost:5001/api'; // Smart local fallback
+  : 'http://localhost:5001/api';
 
-console.log("Resolved API_URL:", API_URL);
-/**
- * Helper function to retrieve the token from local storage.
- */
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('vyaparflow_token');
-  return {
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  };
-};
+  },
+});
 
-/**
- * Universal backend fetch wrapper
- */
-export const fetchApi = async (endpoint, options = {}) => {
-  // Ensure exactly one slash between API_URL and endpoint
-  const cleanUrl = `${API_URL.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
-  
-  const response = await fetch(cleanUrl, {
-    ...options,
-    headers: {
-      ...getAuthHeaders(),
-      ...options.headers,
-    },
-  });
+// Request Interceptor: Attach access token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('vyaparflow_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    if (response.status === 401 || response.status === 403) {
-      localStorage.removeItem('vyaparflow_token');
-      localStorage.removeItem('vyaparflow_user');
-      if (window.location.pathname !== '/auth') {
+// Response Interceptor: Handle token refresh on 401
+api.interceptors.response.use(
+  (response) => response.data,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If 401 and not already retrying
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('vyaparflow_refresh_token');
+
+      if (refreshToken) {
+        try {
+          // Attempt to refresh the token
+          const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+          
+          localStorage.setItem('vyaparflow_token', data.token);
+          localStorage.setItem('vyaparflow_refresh_token', data.refreshToken);
+
+          // Retry the original request with new token
+          originalRequest.headers.Authorization = `Bearer ${data.token}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed - logout user
+          localStorage.removeItem('vyaparflow_token');
+          localStorage.removeItem('vyaparflow_refresh_token');
+          localStorage.removeItem('vyaparflow_user');
+          window.location.href = '/auth';
+        }
+      } else {
+        // No refresh token - logout
+        localStorage.removeItem('vyaparflow_token');
+        localStorage.removeItem('vyaparflow_user');
         window.location.href = '/auth';
       }
     }
-    throw new Error(errorData.error || 'API Request failed');
+
+    return Promise.reject(error.response?.data || error.message);
   }
+);
 
-  return response.json();
+export const fetchApi = (endpoint, options = {}) => {
+  const method = options.method?.toLowerCase() || 'get';
+  return api[method](endpoint, options.body ? JSON.parse(options.body) : undefined);
 };
 
-/**
- * Signup Helper
- */
-export const signupUser = async (name, email, password) => {
-  return fetchApi('/auth/signup', {
-    method: 'POST',
-    body: JSON.stringify({ name, email, password }),
-  });
-};
+// Auth Helpers
+export const signupUser = (name, email, password) => api.post('/auth/signup', { name, email, password });
+export const loginUser = (email, password) => api.post('/auth/login', { email, password });
+export const logoutUser = () => api.post('/auth/logout');
+export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
+export const resetPassword = (token, password) => api.post(`/auth/reset-password/${token}`, { password });
+export const verifyEmail = (token) => api.get(`/auth/verify-email/${token}`);
 
-/**
- * Login Helper
- */
-export const loginUser = async (email, password) => {
-  return fetchApi('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
-};
+// Domain Helpers
+export const getInvoices = () => api.get('/invoices').then(res => res.invoices);
+export const saveInvoice = (data) => data._id ? api.put(`/invoices/${data._id}`, data) : api.post('/invoices', data);
+export const deleteInvoice = (id) => api.delete(`/invoices/${id}`);
+export const finalizeInvoice = (id) => api.post(`/invoices/finalize/${id}`);
+export const updatePayment = (id, data) => api.put(`/invoices/payment/${id}`, data);
 
-/**
- * Calls the backend to generate line items using AI logic.
- */
-export const generateAiItems = async (prompt) => {
-  try {
-    const data = await fetchApi('/generate', {
-      method: 'POST',
-      body: JSON.stringify({ prompt }),
-    });
-    return data;
-  } catch (error) {
-    console.error('API Error generating items:', error);
-    throw error;
-  }
-};
+export const getClients = () => api.get('/clients').then(res => res.clients);
+export const createClient = (data) => api.post('/clients', data);
+export const updateClient = (id, data) => api.put(`/clients/${id}`, data);
+export const deleteClient = (id) => api.delete(`/clients/${id}`);
 
-/**
- * Save Invoice Helper
- */
-export const saveInvoice = async (invoiceData) => {
-  if (invoiceData._id) {
-    return fetchApi(`/invoices/${invoiceData._id}`, {
-      method: 'PUT',
-      body: JSON.stringify(invoiceData),
-    });
-  }
-  return fetchApi('/invoices', {
-    method: 'POST',
-    body: JSON.stringify(invoiceData),
-  });
-};
+export const getProducts = () => api.get('/products').then(res => res.products);
+export const createProduct = (data) => api.post('/products', data);
+export const updateProduct = (id, data) => api.put(`/products/${id}`, data);
+export const deleteProduct = (id) => api.delete(`/products/${id}`);
 
-/**
- * Fetch past invoices
- */
-export const getInvoices = async () => {
-  const data = await fetchApi('/invoices');
-  return data.invoices;
-};
+export const getAnalytics = (range) => api.get(`/analytics?range=${range || '1Y'}`).then(res => res.analytics);
+export const generateAiItems = (prompt) => api.post('/generate', { prompt });
+export const getAiInsights = () => api.get('/generate/insights').then(res => res.insights);
+export const updateProfile = (data) => api.put('/auth/profile', data).then(res => res.user);
 
-/**
- * Update user onboarding profile
- */
-export const updateProfile = async (profileData) => {
-  const data = await fetchApi('/auth/profile', {
-    method: 'PUT',
-    body: JSON.stringify(profileData),
-  });
-  return data.user;
-};
-/**
- * Client API Helpers
- */
-export const getClients = async () => {
-  const data = await fetchApi('/clients');
-  return data.clients;
-};
-
-export const createClient = async (clientData) => {
-  return fetchApi('/clients', {
-    method: 'POST',
-    body: JSON.stringify(clientData),
-  });
-};
-
-export const updateClient = async (id, clientData) => {
-  return fetchApi(`/clients/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(clientData),
-  });
-};
-
-export const deleteClient = async (id) => {
-  return fetchApi(`/clients/${id}`, { method: 'DELETE' });
-};
-
-/**
- * Product API Helpers
- */
-export const getProducts = async () => {
-  const data = await fetchApi('/products');
-  return data.products;
-};
-
-export const createProduct = async (productData) => {
-  return fetchApi('/products', {
-    method: 'POST',
-    body: JSON.stringify(productData),
-  });
-};
-
-export const updateProduct = async (id, productData) => {
-  return fetchApi(`/products/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(productData),
-  });
-};
-
-export const deleteProduct = async (id) => {
-  return fetchApi(`/products/${id}`, { method: 'DELETE' });
-};
-
-export const getAnalytics = async () => {
-  const data = await fetchApi('/analytics');
-  return data.analytics;
-};
-
-
-export const finalizeInvoice = async (id) => {
-  return fetchApi(`/invoices/finalize/${id}`, { method: 'POST' });
-};
-
-export const updatePayment = async (id, paymentData) => {
-  return fetchApi(`/invoices/payment/${id}`, { 
-    method: 'PUT',
-    body: JSON.stringify(paymentData)
-  });
-};
-
-export const logCommunication = async (id, logData) => {
-  return fetchApi(`/invoices/communication/${id}`, { 
-    method: 'POST',
-    body: JSON.stringify(logData)
-  });
-};
-
-export const deleteInvoice = async (id) => {
-  return fetchApi(`/invoices/${id}`, { method: 'DELETE' });
-};
+export default api;
