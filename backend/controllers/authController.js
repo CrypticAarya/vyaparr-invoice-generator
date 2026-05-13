@@ -8,8 +8,8 @@ import auditLogger from '../utils/auditLogger.js';
 
 // SECURE TOKEN CONFIGURATION:
 // We use a short-lived access token and a longer-lived refresh token for optimal security.
-const ACCESS_SECRET = process.env.JWT_SECRET || 'fallback_access_key';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'fallback_refresh_key';
+const ACCESS_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
 const signTokens = (id) => {
   const accessToken = jwt.sign({ id }, ACCESS_SECRET, { expiresIn: '15m' });
@@ -292,4 +292,21 @@ export const verifyEmail = catchAsync(async (req, res, next) => {
   auditLogger.log('EMAIL_VERIFIED', { userId: user._id });
 
   res.json({ success: true, message: 'Email confirmed! Your account is now fully active.' });
+});
+
+/**
+ * 9. Demo Data Seeding
+ * Populates the user's account with realistic data for demonstration purposes.
+ */
+import { seedUserData } from '../utils/seeder.js';
+export const seedUser = catchAsync(async (req, res, next) => {
+  const stats = await seedUserData(req.user.id);
+  
+  auditLogger.log('DATA_SEED_SUCCESS', { userId: req.user.id, stats });
+
+  res.json({
+    success: true,
+    message: 'Demo environment initialized successfully.',
+    data: stats
+  });
 });

@@ -7,7 +7,8 @@ import {
   logoutUser, 
   forgotPassword, 
   resetPassword, 
-  verifyEmail 
+  verifyEmail,
+  seedUser 
 } from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import validate from '../middleware/validate.js';
@@ -26,5 +27,6 @@ router.get('/verify-email/:token', verifyEmail);
 // Protected Routes
 router.post('/logout', authenticateToken, logoutUser);
 router.put('/profile', authenticateToken, validate(updateProfileSchema), updateProfile);
+router.post('/seed', authenticateToken, seedUser);
 
 export default router;

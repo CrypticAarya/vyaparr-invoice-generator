@@ -143,6 +143,7 @@ export const generateLineItems = catchAsync(async (req, res, next) => {
     });
 
   } catch (error) {
+    console.error('OPENAI_GENERATE_ERROR:', error.message);
     return sendMockResponse(res, prompt, true);
   }
 });

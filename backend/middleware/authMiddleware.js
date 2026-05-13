@@ -33,7 +33,7 @@ export const authenticateToken = catchAsync(async (req, res, next) => {
     if (err.name === 'TokenExpiredError') {
       return next(new AppError('Your token has expired. Please refresh your session.', 401));
     }
-    return next(new AppError('Invalid or malformed token.', 403));
+    return next(new AppError('Invalid or malformed token.', 401));
   }
 });
 

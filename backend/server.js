@@ -1,14 +1,13 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 // 1. Initial Setup & Env Configuration
-// We load environment variables first to ensure all subsequent imports (like DB) have access to them.
-dotenv.config();
+// Environment variables are now loaded via the side-effect import at the top.
 
 import { connectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';

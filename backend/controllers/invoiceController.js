@@ -37,7 +37,7 @@ export const createInvoice = catchAsync(async (req, res, next) => {
   await newInvoice.save();
 
   // 2. Adjust Inventory Stock
-  await InventoryService.adjustStock(payload.items, 'reduction');
+  await InventoryService.adjustStock(payload.items, 'outbound', req.user.id, newInvoice._id);
   
   res.status(201).json({ 
     success: true, 
@@ -63,11 +63,11 @@ export const updateInvoice = catchAsync(async (req, res, next) => {
   // Handle Inventory Delta for items if updated
   if (payload.items) {
     // Restore old stock first
-    await InventoryService.restoreFromInvoice(existingInvoice);
+    await InventoryService.restoreFromInvoice(existingInvoice, req.user.id);
     // Validate new stock
     await InventoryService.validateStock(payload.items);
     // Apply new reduction
-    await InventoryService.adjustStock(payload.items, 'reduction');
+    await InventoryService.adjustStock(payload.items, 'outbound', req.user.id, existingInvoice._id);
   }
 
   // Delta update for Client Balance if total changed on a non-draft invoice
@@ -210,7 +210,7 @@ export const deleteInvoice = catchAsync(async (req, res, next) => {
   if (!invoice) return next(new AppError('Invoice not found', 404));
 
   // 1. Restore Inventory Stock
-  await InventoryService.restoreFromInvoice(invoice);
+  await InventoryService.restoreFromInvoice(invoice, req.user.id);
 
   // 2. Reverse AR impact
   if (['final', 'partial', 'overdue'].includes(invoice.status) && invoice.clientId) {

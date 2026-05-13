@@ -7,37 +7,36 @@ class AiService {
     });
   }
 
+  /**
+   * Generates simple, actionable alerts based on business data.
+   * Focuses on utility (Inventory, Collections) rather than hype (Predictions).
+   */
   async generateBusinessInsights(data) {
-    const { metrics, charts, recentActivity } = data;
+    const { metrics, charts } = data;
 
     const systemPrompt = `
-      You are a high-level Business Intelligence Consultant for a SaaS platform called "VyaparFlow".
-      Your goal is to provide actionable, data-driven insights to a business owner based on their current performance metrics.
+      You are a Business Assistant for an invoicing app. 
+      Analyze the data and provide 2-3 BRIEF, actionable alerts.
+      Focus ONLY on:
+      1. Inventory levels (if low).
+      2. Accounts Receivable (if high).
+      3. Revenue trends.
       
-      DATA CONTEXT:
-      - Total Revenue: ${metrics.totalRevenue}
-      - Revenue Growth: ${metrics.revenueGrowth}%
-      - Pending AR: ${metrics.pendingPayments}
-      - Inventory Health: ${metrics.inventoryHealth}%
-      - Low Stock Count: ${metrics.lowStockCount}
-      - Top Products: ${JSON.stringify(charts.topProducts)}
-      - Top Clients: ${JSON.stringify(charts.topClients)}
+      DATA:
+      - Revenue: ${metrics.totalRevenue}
+      - Growth: ${metrics.revenueGrowth}%
+      - Pending: ${metrics.pendingPayments}
+      - Low Stock: ${metrics.lowStockCount}
       
       OUTPUT FORMAT (JSON ONLY):
       {
-        "healthSummary": "A concise 2-sentence summary of overall business status.",
-        "insights": [
+        "alerts": [
           {
-            "type": "success | warning | info | danger",
+            "type": "warning | info | success",
             "title": "Short title",
-            "text": "Detailed actionable insight based on data.",
-            "recommendation": "Specific action to take."
+            "text": "1 sentence explanation."
           }
-        ],
-        "predictions": {
-          "revenueForecast": "Short prediction about next month",
-          "riskLevel": "Low | Medium | High"
-        }
+        ]
       }
     `;
 
@@ -47,47 +46,46 @@ class AiService {
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: "Analyze my business data and provide executive insights." }
+          { role: "user", content: "Check my business health." }
         ],
-        timeout: 15000
+        timeout: 10000
       });
 
       return JSON.parse(response.choices[0].message.content);
     } catch (error) {
-      console.error('AI Service Error:', error);
-      return this.getMockInsights(data);
+      return this.getFallbackAlerts(data);
     }
   }
 
-  getMockInsights(data) {
+  getFallbackAlerts(data) {
     const { metrics } = data;
-    return {
-      healthSummary: `Your business is showing ${metrics.revenueGrowth >= 0 ? 'positive momentum' : 'some challenges'} with total revenue of ₹${(metrics.totalRevenue || 0).toLocaleString()}.`,
-      insights: [
-        {
-          type: metrics.revenueGrowth >= 0 ? "success" : "warning",
-          title: "Revenue Velocity",
-          text: `Revenue has ${metrics.revenueGrowth >= 0 ? 'increased' : 'decreased'} by ${Math.abs(metrics.revenueGrowth)}% this month.`,
-          recommendation: metrics.revenueGrowth >= 0 ? "Maintain current marketing strategy." : "Review pricing or customer acquisition costs."
-        },
-        {
-          type: metrics.lowStockCount > 0 ? "warning" : "success",
-          title: "Inventory Alert",
-          text: `You have ${metrics.lowStockCount} items near or below threshold.`,
-          recommendation: metrics.lowStockCount > 0 ? "Replenish top-selling items to avoid stockouts." : "Inventory levels are optimized."
-        },
-        {
-          type: metrics.pendingPayments > 0 ? "info" : "success",
-          title: "Cash Flow",
-          text: `₹${(metrics.pendingPayments || 0).toLocaleString()} is currently tied up in outstanding invoices.`,
-          recommendation: "Send automated reminders to clients with overdue balances."
-        }
-      ],
-      predictions: {
-        revenueForecast: "Expected to remain stable with 5-8% variance.",
-        riskLevel: metrics.pendingPayments > (metrics.totalRevenue * 0.5) ? "Medium" : "Low"
-      }
-    };
+    const alerts = [];
+    
+    if (metrics.lowStockCount > 0) {
+      alerts.push({
+        type: "warning",
+        title: "Low Stock Alert",
+        text: `${metrics.lowStockCount} items are below their reorder threshold.`
+      });
+    }
+    
+    if (metrics.pendingPayments > 0) {
+      alerts.push({
+        type: "info",
+        title: "Outstanding Receivables",
+        text: `₹${metrics.pendingPayments.toLocaleString()} is currently pending across invoices.`
+      });
+    }
+
+    if (alerts.length === 0) {
+      alerts.push({
+        type: "success",
+        title: "Operations Healthy",
+        text: "All inventory and payments are currently within normal ranges."
+      });
+    }
+
+    return { alerts };
   }
 }
 

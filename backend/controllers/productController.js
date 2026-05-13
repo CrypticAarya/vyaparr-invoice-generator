@@ -1,4 +1,5 @@
 import Product from '../models/Product.js';
+import StockTransaction from '../models/StockTransaction.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
 
@@ -38,5 +39,16 @@ export const deleteProduct = catchAsync(async (req, res, next) => {
   res.json({ 
     success: true, 
     data: { message: 'Product deleted' } 
+  });
+});
+export const getProductLedger = catchAsync(async (req, res, next) => {
+  const transactions = await StockTransaction.find({ 
+    productId: req.params.id, 
+    userId: req.user.id 
+  }).sort({ createdAt: -1 }).limit(50);
+  
+  res.json({ 
+    success: true, 
+    data: { transactions } 
   });
 });

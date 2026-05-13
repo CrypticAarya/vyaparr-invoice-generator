@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { updateProfile } from '../api';
-import { motion } from 'framer-motion';
+import { updateProfile, seedUser } from '../api';
 
 export default function Settings() {
   const { user, login, logout } = useAuth();
@@ -15,6 +14,7 @@ export default function Settings() {
     bankDetails: user?.bankDetails || ''
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,117 +26,111 @@ export default function Settings() {
     try {
       const updatedUser = await updateProfile(formData);
       login(updatedUser, localStorage.getItem('vyaparflow_token'));
-      addToast('Business settings updated successfully!', 'success');
+      addToast('Profile updated successfully', 'success');
     } catch (err) {
-      addToast('Failed to update settings: ' + err.message, 'error');
+      addToast(err.message, 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleSeed = async () => {
+    if (!window.confirm('This will populate your account with demo data. Continue?')) return;
+    setIsSeeding(true);
+    try {
+      const res = await seedUser();
+      addToast('Demo data seeded! Refreshing...', 'success');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      addToast(err.message, 'error');
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   return (
-    <div className="page-container">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-        <p className="text-slate-500 font-medium mt-1">Configure your business profile and application preferences.</p>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Settings</h1>
+        <p className="text-xs font-medium text-slate-500">Manage your business profile and preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="premium-card p-6"
-          >
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              Business Information
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Business Name</label>
-                <input name="businessName" type="text" value={formData.businessName} onChange={handleChange} className="input-field mt-1" />
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div className="md:col-span-8 space-y-6">
+          {/* Business Profile */}
+          <div className="data-card">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Business Profile</h3>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="col-span-2 sm:col-span-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Legal Name</label>
+                <input name="businessName" value={formData.businessName} onChange={handleChange} className="input-field" placeholder="Acme Inc." />
               </div>
-              <div>
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Business Type</label>
-                <input name="businessType" type="text" value={formData.businessType} onChange={handleChange} className="input-field mt-1" />
+              <div className="col-span-2 sm:col-span-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Entity Type</label>
+                <input name="businessType" value={formData.businessType} onChange={handleChange} className="input-field" placeholder="Freelancer / Private Ltd" />
               </div>
-              <div className="md:col-span-2">
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Address</label>
-                <textarea name="businessAddress" value={formData.businessAddress} onChange={handleChange} className="input-field mt-1 h-24" />
+              <div className="col-span-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Registered Address</label>
+                <textarea name="businessAddress" value={formData.businessAddress} onChange={handleChange} rows={3} className="input-field py-2" placeholder="Street, City, State, ZIP" />
               </div>
             </div>
-
-            <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-              <button onClick={handleSave} disabled={isSaving} className="btn-primary">
-                {isSaving ? 'Saving...' : 'Save Changes'}
+            <div className="flex justify-end pt-4 border-t border-slate-50">
+              <button onClick={handleSave} disabled={isSaving} className="btn btn-primary px-6">
+                {isSaving ? 'Saving...' : 'Update Profile'}
               </button>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="premium-card p-6"
-          >
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-              Payment Details
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Payment Settings */}
+          <div className="data-card">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Settlement Methods</h3>
+            <div className="space-y-4 mb-6">
               <div>
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">UPI ID</label>
-                <input name="upiId" type="text" value={formData.upiId} onChange={handleChange} className="input-field mt-1" placeholder="example@upi" />
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">UPI VPA</label>
+                <input name="upiId" value={formData.upiId} onChange={handleChange} className="input-field" placeholder="business@upi" />
               </div>
-              <div className="md:col-span-2">
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Bank Details</label>
-                <textarea name="bankDetails" value={formData.bankDetails} onChange={handleChange} className="input-field mt-1 h-20" placeholder="Bank Name, A/C No, IFSC..." />
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Bank Instructions (RTGS/NEFT)</label>
+                <textarea name="bankDetails" value={formData.bankDetails} onChange={handleChange} rows={4} className="input-field py-2" placeholder="Bank Name\nA/C No\nIFSC Code" />
               </div>
             </div>
-
-            <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-              <button onClick={handleSave} disabled={isSaving} className="btn-primary">
-                {isSaving ? 'Saving...' : 'Save Changes'}
+            <div className="flex justify-end pt-4 border-t border-slate-50">
+              <button onClick={handleSave} disabled={isSaving} className="btn btn-primary px-6">
+                Save Changes
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        <div className="space-y-6">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="premium-card p-6"
-          >
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Account</h3>
-            <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-xl">
-              <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
-                {user?.name?.charAt(0).toUpperCase()}
+        {/* Sidebar Actions */}
+        <div className="md:col-span-4 space-y-6">
+          <div className="data-card bg-slate-50 border-slate-200">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Account</h3>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
+                {user?.name?.charAt(0)}
               </div>
               <div>
-                <p className="font-bold text-slate-900">{user?.name}</p>
-                <p className="text-xs text-slate-500">{user?.email}</p>
+                <p className="text-sm font-bold text-slate-900">{user?.name}</p>
+                <p className="text-[10px] font-medium text-slate-500 truncate max-w-[120px]">{user?.email}</p>
               </div>
             </div>
-            <button onClick={logout} className="w-full mt-6 text-rose-500 font-bold text-sm hover:bg-rose-50 py-2 rounded-lg transition-colors">
+            <button onClick={logout} className="w-full btn btn-secondary text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors">
               Sign Out
             </button>
-          </motion.div>
+          </div>
 
-          <div className="premium-card p-6 bg-indigo-600 text-white">
-            <h3 className="text-lg font-bold">Help & Support</h3>
-            <p className="text-indigo-100 text-sm mt-2 leading-relaxed">
-              Need assistance with GST filings or invoice automation? Our experts are here to help.
+          <div className="data-card bg-slate-900 border-slate-800">
+            <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mb-3">Developer / Demo</h3>
+            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+              Populate your workspace with realistic business data for demonstration purposes.
             </p>
-            <button className="w-full mt-4 py-2 bg-white text-indigo-600 font-bold rounded-lg hover:bg-indigo-50 transition-colors text-sm">
-              Contact Support
+            <button 
+              onClick={handleSeed} 
+              disabled={isSeeding}
+              className="w-full btn btn-accent"
+            >
+              {isSeeding ? 'Seeding...' : 'Seed Demo Data'}
             </button>
           </div>
         </div>

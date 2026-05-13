@@ -19,16 +19,20 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error("Auth hydration failed:", err);
         localStorage.removeItem('vyaparflow_token');
+        localStorage.removeItem('vyaparflow_refresh_token');
         localStorage.removeItem('vyaparflow_user');
       }
     }
     setLoading(false);
   }, []);
 
-  const login = (userData, authToken) => {
+  const login = (userData, authToken, refreshToken) => {
     setToken(authToken);
     setUser(userData);
     localStorage.setItem('vyaparflow_token', authToken);
+    if (refreshToken) {
+      localStorage.setItem('vyaparflow_refresh_token', refreshToken);
+    }
     localStorage.setItem('vyaparflow_user', JSON.stringify(userData));
   };
 
@@ -36,6 +40,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('vyaparflow_token');
+    localStorage.removeItem('vyaparflow_refresh_token');
     localStorage.removeItem('vyaparflow_user');
   };
 

@@ -3,24 +3,17 @@ import { NavLink } from 'react-router-dom';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { useAiInsights } from '../hooks/useAiInsights';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, BarChart, Bar
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
 // UI Components
-import SectionHeader from '../ui/SectionHeader';
-import Button from '../ui/Button';
 import PageLoader from '../components/PageLoader';
-import StatCard from '../ui/analytics/StatCard';
-import ChartCard from '../ui/analytics/ChartCard';
-import KPISection from '../ui/analytics/KPISection';
-import RecommendationPanel from '../ui/ai/RecommendationPanel';
 
 // Icons
-const RevenueIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-const ARPathIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>;
-const GSTIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>;
-const InventoryIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>;
+const RevenueIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const ARPathIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>;
+const GSTIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>;
+const InventoryIcon = (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>;
 
 export default function Home() {
   const [range, setRange] = useState('1Y');
@@ -34,85 +27,98 @@ export default function Home() {
   const { metrics, charts, recentActivity } = analyticsData;
 
   return (
-    <div className="space-y-10">
-      <SectionHeader 
-        title="Command Center" 
-        description="Your business intelligence and revenue health at a glance."
-        actions={
-          <>
-            <Button variant="secondary" icon={() => (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-            )}>Export Data</Button>
-            <NavLink to="/new-invoice">
-              <Button icon={() => (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-              )}>New Invoice</Button>
-            </NavLink>
-          </>
-        }
-      />
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+          <p className="text-xs font-medium text-slate-500">Real-time business performance overview.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="btn btn-secondary px-3 py-1.5 h-8">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Export
+          </button>
+          <NavLink to="/new-invoice">
+            <button className="btn btn-primary px-3 py-1.5 h-8">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+              New Invoice
+            </button>
+          </NavLink>
+        </div>
+      </div>
 
-      {/* KPI Stats */}
-      <KPISection>
-        <StatCard 
-          title="Total Revenue" 
-          value={`₹${(metrics.totalRevenue || 0).toLocaleString()}`} 
-          trend={metrics.revenueGrowth} 
-          subValue="Monthly Growth"
-          icon={RevenueIcon}
-          color="indigo"
-        />
-        <StatCard 
-          title="Outstanding AR" 
-          value={`₹${(metrics.pendingPayments || 0).toLocaleString()}`} 
-          subValue="Accounts Receivable"
-          icon={ARPathIcon}
-          color="rose"
-        />
-        <StatCard 
-          title="Tax Liability" 
-          value={`₹${(metrics.totalGST || 0).toLocaleString()}`} 
-          subValue="Estimated GST"
-          icon={GSTIcon}
-          color="amber"
-        />
-        <StatCard 
-          title="Inventory Health" 
-          value={`${metrics.inventoryHealth}%`} 
-          subValue={`${metrics.lowStockCount} Low stock items`}
-          icon={InventoryIcon}
-          color="emerald"
-        />
-      </KPISection>
+      {/* High-Density KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="stat-card">
+          <div className="flex justify-between items-center mb-1">
+            <span className="stat-label">Revenue</span>
+            <RevenueIcon className="w-3.5 h-3.5 text-slate-400" />
+          </div>
+          <div className="stat-value">₹{(metrics.totalRevenue || 0).toLocaleString()}</div>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className={`text-[10px] font-bold ${metrics.revenueGrowth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              {metrics.revenueGrowth >= 0 ? '+' : ''}{metrics.revenueGrowth}%
+            </span>
+            <span className="text-[10px] font-medium text-slate-400">vs last month</span>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="flex justify-between items-center mb-1">
+            <span className="stat-label">Outstanding</span>
+            <ARPathIcon className="w-3.5 h-3.5 text-slate-400" />
+          </div>
+          <div className="stat-value">₹{(metrics.pendingPayments || 0).toLocaleString()}</div>
+          <div className="text-[10px] font-medium text-slate-400 mt-1">Accounts Receivable</div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Main Analytics Block */}
-        <div className="lg:col-span-8 space-y-8">
-          
-          {/* Revenue Trend Chart */}
-          <ChartCard 
-            title="Revenue Performance" 
-            description="Monthly revenue trends over selected period"
-            actions={
-              <div className="flex bg-slate-100 p-1 rounded-xl">
-                {['1M', '6M', '1Y', 'ALL'].map(t => (
-                  <button 
-                    key={t} 
-                    onClick={() => setRange(t)}
-                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${range === t ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            }
-          >
+        <div className="stat-card">
+          <div className="flex justify-between items-center mb-1">
+            <span className="stat-label">Tax (GST)</span>
+            <GSTIcon className="w-3.5 h-3.5 text-slate-400" />
+          </div>
+          <div className="stat-value">₹{(metrics.totalGST || 0).toLocaleString()}</div>
+          <div className="text-[10px] font-medium text-slate-400 mt-1">Estimated Liability</div>
+        </div>
+
+        <div className="stat-card">
+          <div className="flex justify-between items-center mb-1">
+            <span className="stat-label">Inventory</span>
+            <InventoryIcon className="w-3.5 h-3.5 text-slate-400" />
+          </div>
+          <div className="stat-value">{metrics.inventoryHealth}%</div>
+          <div className="text-[10px] font-medium text-slate-400 mt-1">{metrics.lowStockCount} items below threshold</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Main Revenue Chart */}
+        <div className="lg:col-span-8 data-card !p-0 overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Net Revenue Trend</h3>
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Monthly Performance</p>
+            </div>
+            <div className="flex bg-slate-100 p-0.5 rounded-md">
+              {['1M', '6M', '1Y'].map(t => (
+                <button 
+                  key={t} 
+                  onClick={() => setRange(t)}
+                  className={`px-2.5 py-1 text-[9px] font-bold rounded transition-all ${range === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="h-[320px] p-5">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={charts.revenueTrend}>
                 <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0f172a" stopOpacity={0.03}/>
+                    <stop offset="95%" stopColor="#0f172a" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -120,82 +126,77 @@ export default function Home() {
                   dataKey="label" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                  tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}}
                   dy={10}
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
-                  tickFormatter={(value) => `₹${value >= 1000 ? (value/1000).toFixed(0)+'k' : value}`}
+                  tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}}
+                  tickFormatter={(val) => `₹${val >= 1000 ? (val/1000).toFixed(0)+'k' : val}`}
                 />
                 <Tooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
-                  formatter={(value) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                  contentStyle={{ borderRadius: '6px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 600 }}
+                  cursor={{ stroke: '#e2e8f0', strokeWidth: 1 }}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#0f172a" 
+                  strokeWidth={2} 
+                  fillOpacity={1} 
+                  fill="url(#revenueGradient)" 
+                  activeDot={{ r: 4, fill: '#0f172a', strokeWidth: 0 }}
+                />
               </AreaChart>
             </ResponsiveContainer>
-          </ChartCard>
-
-          {/* Recent Activity Table (Alternative to ChartCard) */}
-          <ChartCard 
-            title="Recent Activity" 
-            description="Latest finalized invoices"
-            actions={<NavLink to="/history" className="text-xs font-black text-indigo-600 uppercase hover:underline">View All</NavLink>}
-          >
-            <div className="space-y-4">
-              {(recentActivity || []).map((activity, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl group hover:bg-indigo-50 transition-all cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-black text-slate-900">#{activity.id} - {activity.client}</p>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{new Date(activity.date).toLocaleDateString('en-IN')}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-900">₹{(activity.amount || 0).toLocaleString()}</p>
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${activity.status === 'paid' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      {activity.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ChartCard>
+          </div>
         </div>
 
-        {/* AI Side Block */}
-        <div className="lg:col-span-4 space-y-8">
-          <RecommendationPanel 
-            insights={aiInsights?.insights} 
-            isLoading={isAiLoading} 
-          />
+        {/* Side Section: Recent Activity Table */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="data-card !p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900">Recent Activity</h3>
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Latest Invoices</p>
+            </div>
+            <div className="divide-y divide-slate-50">
+              {(recentActivity || []).length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400 font-medium">No recent activity</div>
+              ) : (
+                recentActivity.map((activity, idx) => (
+                  <div key={idx} className="px-5 py-3.5 hover:bg-slate-50 transition-colors flex items-center justify-between">
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate">#{activity.id}</div>
+                      <div className="text-[10px] font-medium text-slate-500 truncate">{activity.client}</div>
+                    </div>
+                    <div className="text-right ml-4">
+                      <div className="text-xs font-bold text-slate-900">₹{activity.amount.toLocaleString()}</div>
+                      <div className={`text-[9px] font-bold uppercase tracking-tighter ${activity.status === 'paid' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {activity.status}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100">
+              <NavLink to="/history" className="text-[10px] font-bold text-slate-500 hover:text-slate-900 uppercase tracking-widest transition-colors">
+                View Transaction History →
+              </NavLink>
+            </div>
+          </div>
 
-          <ChartCard 
-            title="Invoice Status" 
-            description="Current pipeline"
-          >
-            <ResponsiveContainer width="100%" height="200px">
-              <PieChart>
-                <Pie
-                  data={charts.statusDistribution || []}
-                  innerRadius={50}
-                  outerRadius={70}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {(charts.statusDistribution || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          {/* AI Helper - Subtle Integration */}
+          <div className="bg-slate-900 rounded-lg p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Business Intelligence</span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed font-medium">
+              {aiInsights?.insights ? aiInsights.insights[0] : "Welcome to VyaparFlow. Create your first invoice to generate smart financial insights."}
+            </p>
+          </div>
         </div>
       </div>
     </div>

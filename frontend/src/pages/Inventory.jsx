@@ -12,11 +12,14 @@ import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
 import TextArea from '../ui/TextArea';
 import PageLoader from '../components/PageLoader';
+import StockLedgerModal from '../components/StockLedgerModal';
 
 export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLedgerOpen, setIsLedgerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [activeLedgerProduct, setActiveLedgerProduct] = useState(null);
 
   // TanStack Query Hooks
   const { data: products = [], isLoading } = useProducts();
@@ -48,6 +51,11 @@ export default function Inventory() {
     setIsModalOpen(true);
   };
 
+  const handleOpenLedger = (product) => {
+    setActiveLedgerProduct(product);
+    setIsLedgerOpen(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const mutation = editingProduct ? updateProductMutation : createProductMutation;
@@ -61,7 +69,7 @@ export default function Inventory() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
+    if (window.confirm('Are you sure you want to delete this item? This may affect historical ledgers.')) {
       deleteProductMutation.mutate(id);
     }
   };
@@ -75,7 +83,7 @@ export default function Inventory() {
     <div className="space-y-6">
       <SectionHeader 
         title="Inventory" 
-        description="Manage your products, services, and pricing."
+        description="Manage your products, services, and pricing with a full audit trail."
         actions={
           <>
             <div className="relative">
@@ -107,25 +115,24 @@ export default function Inventory() {
             onAction={() => handleOpenModal()}
           />
         ) : (
-          <Table headers={['Product / Service', 'HSN/SAC', 'Stock Status', 'Price', 'Tax Slab', 'Actions']}>
+          <Table headers={['Product / Service', 'Stock Status', 'Price', 'Tax Slab', 'Actions']}>
             {(filteredProducts || []).map((p) => (
               <TableRow key={p._id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div>
                       <p className="font-black text-slate-900">{p.name}</p>
-                      <p className="text-xs text-slate-400 font-bold truncate max-w-xs">{p.description || 'No description'}</p>
+                      <p className="text-[10px] text-indigo-600 font-black uppercase tracking-wider">{p.hsn || 'No HSN Code'}</p>
                     </div>
                     {p.isService && <Badge variant="neutral">Service</Badge>}
                   </div>
                 </TableCell>
-                <TableCell className="font-black text-indigo-600 uppercase tracking-wider">{p.hsn || '-'}</TableCell>
                 <TableCell>
                   {p.isService ? (
-                    <span className="text-slate-400 font-bold text-xs">N/A</span>
+                    <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Digital Service</span>
                   ) : (
                     <div className="flex flex-col gap-1">
-                      <p className={`font-black ${p.stockQuantity <= 0 ? 'text-rose-500' : p.stockQuantity <= p.lowStockThreshold ? 'text-amber-500' : 'text-emerald-500'}`}>
+                      <p className={`text-sm font-black ${p.stockQuantity <= 0 ? 'text-rose-500' : p.stockQuantity <= p.lowStockThreshold ? 'text-amber-500' : 'text-emerald-500'}`}>
                         {p.stockQuantity} {p.unit || 'PCS'}
                       </p>
                       {p.stockQuantity <= p.lowStockThreshold && p.stockQuantity > 0 && (
@@ -146,6 +153,15 @@ export default function Inventory() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    {!p.isService && (
+                      <button 
+                        onClick={() => handleOpenLedger(p)} 
+                        title="View Stock Ledger"
+                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                      </button>
+                    )}
                     <button onClick={() => handleOpenModal(p)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
@@ -163,7 +179,7 @@ export default function Inventory() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title={editingProduct ? 'Edit Item' : 'Add New Item'}
+        title={editingProduct ? 'Update Inventory' : 'Add New Item'}
         actions={
           <>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
@@ -171,7 +187,7 @@ export default function Inventory() {
               onClick={handleSubmit}
               isLoading={createProductMutation.isPending || updateProductMutation.isPending}
             >
-              {editingProduct ? 'Update Item' : 'Save Item'}
+              {editingProduct ? 'Commit Changes' : 'Register Item'}
             </Button>
           </>
         }
@@ -183,19 +199,19 @@ export default function Inventory() {
             required 
             value={formData.name} 
             onChange={(e) => setFormData({...formData, name: e.target.value})} 
-            placeholder="e.g. Web Development Services" 
+            placeholder="e.g. Industrial Steel Pipe" 
           />
           
-          <div className="md:col-span-2 flex items-center gap-6 p-4 bg-slate-50 rounded-2xl">
-            <div className="flex items-center gap-2">
+          <div className="md:col-span-2 flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="flex items-center gap-3">
               <input 
                 type="checkbox" 
                 id="isService"
                 checked={formData.isService}
                 onChange={(e) => setFormData({...formData, isService: e.target.checked})}
-                className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                className="w-5 h-5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
               />
-              <label htmlFor="isService" className="text-sm font-bold text-slate-700">This is a Service (No Stock Tracking)</label>
+              <label htmlFor="isService" className="text-sm font-black text-slate-700 uppercase tracking-tight">Service / Digital Good</label>
             </div>
           </div>
 
@@ -206,7 +222,7 @@ export default function Inventory() {
             placeholder="e.g. 9983" 
           />
           <Input 
-            label="Unit (e.g. PCS, HRS, NOS)" 
+            label="Measurement Unit" 
             value={formData.unit} 
             onChange={(e) => setFormData({...formData, unit: e.target.value})} 
             placeholder="PCS" 
@@ -215,14 +231,14 @@ export default function Inventory() {
           {!formData.isService && (
             <>
               <Input 
-                label="Initial Stock Quantity" 
+                label="Current Stock Count" 
                 type="number" 
                 value={formData.stockQuantity} 
                 onChange={(e) => setFormData({...formData, stockQuantity: Number(e.target.value)})} 
                 placeholder="0" 
               />
               <Input 
-                label="Low Stock Alert Threshold" 
+                label="Low Stock Threshold" 
                 type="number" 
                 value={formData.lowStockThreshold} 
                 onChange={(e) => setFormData({...formData, lowStockThreshold: Number(e.target.value)})} 
@@ -240,11 +256,11 @@ export default function Inventory() {
             placeholder="0.00" 
           />
           <div className="space-y-2">
-            <label className="text-[13px] font-black text-slate-700 uppercase tracking-widest ml-1">GST Slab (%)</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Slab (%)</label>
             <select 
               value={formData.gstSlab} 
               onChange={(e) => setFormData({...formData, gstSlab: Number(e.target.value)})} 
-              className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-[14px] font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20 focus:bg-white transition-all appearance-none cursor-pointer"
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-[14px] font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:bg-white transition-all appearance-none cursor-pointer"
             >
               <option value={0}>0% (Exempt)</option>
               <option value={5}>5%</option>
@@ -255,14 +271,20 @@ export default function Inventory() {
           </div>
           <TextArea 
             className="md:col-span-2"
-            label="Description"
+            label="Internal Notes"
             value={formData.description} 
             onChange={(e) => setFormData({...formData, description: e.target.value})} 
-            placeholder="Brief details about the product or service..." 
+            placeholder="Technical specs or vendor details..." 
             rows={3}
           />
         </form>
       </Modal>
+
+      <StockLedgerModal 
+        isOpen={isLedgerOpen} 
+        onClose={() => setIsLedgerOpen(false)} 
+        product={activeLedgerProduct} 
+      />
     </div>
   );
 }
