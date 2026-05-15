@@ -94,7 +94,10 @@ export const login = (email, password) => apiClient.post('/auth/login', { email,
 export const logout = () => apiClient.post('/auth/logout');
 export const updateBusinessProfile = (profile) => apiClient.put('/auth/profile', profile).then(res => res.data.user);
 export const requestPasswordReset = (email) => apiClient.post('/auth/forgot-password', { email });
+export const forgotPassword = requestPasswordReset; // Alias
 export const submitNewPassword = (token, password) => apiClient.post(`/auth/reset-password/${token}`, { password });
+export const resetPassword = submitNewPassword; // Alias
+export const seedUser = () => apiClient.post('/auth/seed');
 
 // --- Financial Documents (Invoices) ---
 export const fetchInvoices = () => apiClient.get('/invoices').then(res => res.data.invoices);
@@ -120,5 +123,12 @@ export const archiveProduct = (id) => apiClient.delete(`/products/${id}`);
 export const fetchBusinessAnalytics = (range) => apiClient.get(`/analytics?range=${range || '1Y'}`).then(res => res.data.analytics);
 export const aiParseLineItems = (prompt) => apiClient.post('/generate', { prompt });
 export const fetchAiCfoInsights = () => apiClient.get('/generate/insights').then(res => res.data.insights);
+
+// --- Advanced / Legacy ---
+export const fetchProductLedger = (productId) => apiClient.get(`/products/${productId}/ledger`).then(res => res.data.transactions);
+export const fetchApi = (endpoint, options = {}) => {
+  const method = options.method?.toLowerCase() || 'get';
+  return apiClient[method](endpoint, options.body ? JSON.parse(options.body) : undefined);
+};
 
 export default apiClient;
