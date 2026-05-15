@@ -3,7 +3,7 @@ import {
   signupUser, 
   loginUser, 
   updateProfile, 
-  refreshAccessToken, 
+  refreshToken, 
   logoutUser, 
   forgotPassword, 
   resetPassword, 
@@ -16,15 +16,20 @@ import { signupSchema, loginSchema, updateProfileSchema } from '../validators/au
 
 const router = express.Router();
 
-// Public Routes
+/**
+ * AUTH ROUTES
+ * Manages the security perimeter for user identity.
+ */
+
+// --- Public Gateways ---
 router.post('/signup', validate(signupSchema), signupUser);
 router.post('/login', validate(loginSchema), loginUser);
-router.post('/refresh', refreshAccessToken);
+router.post('/refresh', refreshToken);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
 router.get('/verify-email/:token', verifyEmail);
 
-// Protected Routes
+// --- Secure Operations ---
 router.post('/logout', authenticateToken, logoutUser);
 router.put('/profile', authenticateToken, validate(updateProfileSchema), updateProfile);
 router.post('/seed', authenticateToken, seedUser);

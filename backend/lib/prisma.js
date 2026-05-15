@@ -1,5 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 
+/**
+ * PRISMA CLIENT SINGLETON
+ * 
+ * We maintain a single instance of the Prisma Client to avoid 
+ * connection pool exhaustion during local development.
+ */
+
 let prisma;
 
 if (process.env.NODE_ENV === 'production') {
