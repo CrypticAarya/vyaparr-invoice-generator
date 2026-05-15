@@ -1,18 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  getInvoices, 
-  saveInvoice, 
-  finalizeInvoice, 
-  updatePayment, 
-  logCommunication, 
-  deleteInvoice 
+  fetchInvoices, 
+  saveInvoiceRecord, 
+  lockInvoice, 
+  recordInvoicePayment, 
+  trackCommunication, 
+  removeInvoiceRecord 
 } from '../api';
 import { useToast } from '../context/ToastContext';
 
 export const useInvoices = () => {
   return useQuery({
     queryKey: ['invoices'],
-    queryFn: getInvoices,
+    queryFn: fetchInvoices,
   });
 };
 
@@ -21,7 +21,7 @@ export const useSaveInvoice = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: saveInvoice,
+    mutationFn: saveInvoiceRecord,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       addToast('Invoice saved successfully', 'success');
@@ -37,7 +37,7 @@ export const useFinalizeInvoice = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: finalizeInvoice,
+    mutationFn: lockInvoice,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       addToast('Invoice finalized', 'success');
@@ -53,7 +53,7 @@ export const useUpdatePayment = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }) => updatePayment(id, data),
+    mutationFn: ({ id, data }) => recordInvoicePayment(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       addToast('Payment updated', 'success');
@@ -69,7 +69,7 @@ export const useDeleteInvoice = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: deleteInvoice,
+    mutationFn: removeInvoiceRecord,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       addToast('Invoice deleted', 'success');

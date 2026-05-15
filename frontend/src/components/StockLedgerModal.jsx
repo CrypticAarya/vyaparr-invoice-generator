@@ -6,7 +6,7 @@ import { useProductLedger } from '../hooks/useProductLedger';
 import PageLoader from './PageLoader';
 
 const StockLedgerModal = ({ isOpen, onClose, product }) => {
-  const { data: transactions = [], isLoading } = useProductLedger(product?._id);
+  const { data: transactions = [], isLoading } = useProductLedger(product?.id);
 
   if (!product) return null;
 
@@ -57,7 +57,7 @@ const StockLedgerModal = ({ isOpen, onClose, product }) => {
                 </tr>
               ) : (
                 transactions.map((tx) => (
-                  <tr key={tx._id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-xs font-bold text-slate-900">{new Date(tx.createdAt).toLocaleDateString()}</p>
                       <p className="text-[10px] font-medium text-slate-400">{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>

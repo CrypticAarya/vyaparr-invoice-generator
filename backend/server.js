@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 
 // 1. Initial Setup & Env Configuration
 // Environment variables are now loaded via the side-effect import at the top.
@@ -37,6 +38,7 @@ app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
 
+app.use(cookieParser());
 // We restrict body size to 10kb to mitigate potential payload-based DOS attacks.
 app.use(express.json({ limit: '10kb' }));
 

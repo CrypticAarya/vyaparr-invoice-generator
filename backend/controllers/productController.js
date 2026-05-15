@@ -1,10 +1,9 @@
-import Product from '../models/Product.js';
-import StockTransaction from '../models/StockTransaction.js';
+import ProductService from '../services/ProductService.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
 
 export const getProducts = catchAsync(async (req, res, next) => {
-  const products = await Product.find({ userId: req.user.id }).sort({ createdAt: -1 });
+  const products = await ProductService.getAllForUser(req.user.id);
   res.json({ 
     success: true, 
     data: { products } 
@@ -12,8 +11,7 @@ export const getProducts = catchAsync(async (req, res, next) => {
 });
 
 export const createProduct = catchAsync(async (req, res, next) => {
-  const product = new Product({ ...req.body, userId: req.user.id });
-  await product.save();
+  const product = await ProductService.create(req.user.id, req.body);
   res.status(201).json({ 
     success: true, 
     data: { product } 
@@ -21,32 +19,31 @@ export const createProduct = catchAsync(async (req, res, next) => {
 });
 
 export const updateProduct = catchAsync(async (req, res, next) => {
-  const product = await Product.findOneAndUpdate(
-    { _id: req.params.id, userId: req.user.id },
-    req.body,
-    { new: true }
-  );
-  if (!product) return next(new AppError('Product not found', 404));
-  res.json({ 
-    success: true, 
-    data: { product } 
-  });
+  try {
+    const product = await ProductService.update(req.params.id, req.user.id, req.body);
+    res.json({ 
+      success: true, 
+      data: { product } 
+    });
+  } catch (err) {
+    return next(new AppError('Product not found or access denied', 404));
+  }
 });
 
 export const deleteProduct = catchAsync(async (req, res, next) => {
-  const product = await Product.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
-  if (!product) return next(new AppError('Product not found', 404));
-  res.json({ 
-    success: true, 
-    data: { message: 'Product deleted' } 
-  });
+  try {
+    await ProductService.delete(req.params.id, req.user.id);
+    res.json({ 
+      success: true, 
+      data: { message: 'Product deleted' } 
+    });
+  } catch (err) {
+    return next(new AppError('Product not found or access denied', 404));
+  }
 });
+
 export const getProductLedger = catchAsync(async (req, res, next) => {
-  const transactions = await StockTransaction.find({ 
-    productId: req.params.id, 
-    userId: req.user.id 
-  }).sort({ createdAt: -1 }).limit(50);
-  
+  const transactions = await ProductService.getLedger(req.params.id, req.user.id);
   res.json({ 
     success: true, 
     data: { transactions } 

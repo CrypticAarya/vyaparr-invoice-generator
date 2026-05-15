@@ -8,7 +8,7 @@ const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex bg-[#F8FAFC] min-h-screen relative">
+    <div className="flex bg-v-bg min-h-screen relative overflow-x-hidden">
       {/* Sidebar - Controlled by Grid or absolute positioning in mobile */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 

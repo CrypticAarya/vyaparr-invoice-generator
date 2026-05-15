@@ -1,18 +1,18 @@
 import React from 'react';
 
 const variants = {
-  primary: 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm active:scale-[0.98]',
-  secondary: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:scale-[0.98]',
-  outline: 'bg-transparent border border-slate-900 text-slate-900 hover:bg-slate-50 active:scale-[0.98]',
-  ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 active:scale-[0.98]',
-  danger: 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm active:scale-[0.98]',
-  accent: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm active:scale-[0.98]',
+  primary: 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.1)] active:scale-[0.98]',
+  secondary: 'bg-zinc-800 text-zinc-100 border border-zinc-700/50 hover:bg-zinc-700 active:scale-[0.98]',
+  outline: 'bg-transparent border border-zinc-700 text-zinc-300 hover:bg-zinc-800 active:scale-[0.98]',
+  ghost: 'bg-transparent text-zinc-400 hover:bg-zinc-800 hover:text-white active:scale-[0.98]',
+  danger: 'bg-rose-600/10 text-rose-500 border border-rose-500/20 hover:bg-rose-600 hover:text-white active:scale-[0.98]',
+  accent: 'bg-emerald-600 text-white hover:bg-emerald-500 active:scale-[0.98]',
 };
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-xs font-semibold rounded-md',
-  md: 'px-4 py-2 text-sm font-semibold rounded-lg',
-  lg: 'px-6 py-3 text-base font-bold rounded-xl',
+  sm: 'px-3 py-1.5 text-xs font-semibold rounded-lg',
+  md: 'px-4 py-2 text-sm font-semibold rounded-xl',
+  lg: 'px-6 py-3 text-base font-bold rounded-2xl',
 };
 
 const Button = ({ 

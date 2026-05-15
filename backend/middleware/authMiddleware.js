@@ -1,13 +1,12 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
-import AppError from '../utils/AppError.js';
 import catchAsync from '../utils/catchAsync.js';
+import AppError from '../utils/AppError.js';
+import UserService from '../services/UserService.js';
 
 const ACCESS_SECRET = process.env.JWT_SECRET || 'access_secret_key';
 
 /**
  * Middleware to verify JSON Web Tokens on protected routes.
- * Ensures that the requester is a valid, authenticated user.
  */
 export const authenticateToken = catchAsync(async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -20,8 +19,8 @@ export const authenticateToken = catchAsync(async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, ACCESS_SECRET);
     
-    // Check if user still exists
-    const user = await User.findById(decoded.id);
+    // Check if user still exists (using Prisma via UserService)
+    const user = await UserService.findById(decoded.id);
     if (!user) {
       return next(new AppError('The user belonging to this token no longer exists.', 401));
     }

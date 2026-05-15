@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { loginUser } from '../api';
+import { login } from '../api';
+import Button from '../ui/Button';
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ const Auth = () => {
     setError('');
 
     try {
-      const response = await loginUser(formData.email, formData.password);
+      const response = await login(formData.email, formData.password);
       const { token, refreshToken, user } = response.data;
       
       login(user, token, refreshToken);
@@ -42,73 +42,73 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-[420px]">
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8 sm:p-10">
-          
-          <div className="mb-8 flex flex-col items-center">
-            <Link to="/" className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            </Link>
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight text-center">Log in to Vyapaar Flow</h2>
-            <p className="text-slate-500 text-sm font-medium mt-1">Manage your business invoicing</p>
+    <div className="w-full max-w-[420px] mx-auto animate-in fade-in zoom-in-95 duration-500 relative z-10">
+      <div className="premium-card p-10 sm:p-14 relative overflow-hidden bg-white/80 backdrop-blur-xl">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-v-accent to-indigo-400"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-v-accent/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+        
+        <div className="mb-10 flex flex-col items-center">
+          <Link to="/" className="w-14 h-14 bg-v-accent rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_25px_-5px_rgba(109,94,245,0.4)] hover:scale-105 transition-transform">
+            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </Link>
+          <h2 className="sketch-title text-4xl font-bold tracking-tight text-center">Welcome back</h2>
+          <p className="text-zinc-500 text-[14px] font-medium mt-2">Log in to your workspace</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Work Email</label>
+            <input
+              name="email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="you@company.com"
+              className="w-full bg-white border border-black/5 rounded-2xl px-5 py-3.5 text-[14px] outline-none transition-all focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 placeholder:text-zinc-400 shadow-sm"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Work Email</label>
-              <input
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@company.com"
-                className="input-field"
-              />
+          <div className="space-y-2">
+            <div className="flex justify-between items-center ml-1">
+              <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Password</label>
+              <Link to="/forgot-password" size="xs" className="text-[11px] font-bold text-zinc-400 hover:text-v-accent transition-colors">Forgot?</Link>
             </div>
+            <input
+              name="password"
+              type="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              className="w-full bg-white border border-black/5 rounded-2xl px-5 py-3.5 text-[14px] outline-none transition-all focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 placeholder:text-zinc-400 shadow-sm"
+            />
+          </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-1.5 ml-1">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Password</label>
-                <Link to="/forgot-password" size="xs" className="text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors">Forgot?</Link>
-              </div>
-              <input
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                className="input-field"
-              />
+          {error && (
+            <div className="text-rose-600 text-[13px] font-bold bg-rose-50 p-4 rounded-2xl border border-rose-100 flex items-center gap-3">
+              <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {error}
             </div>
+          )}
 
-            {error && (
-              <div className="text-rose-600 text-xs font-bold bg-rose-50 p-3 rounded-lg border border-rose-100 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {error}
-              </div>
-            )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full btn-premium btn-premium-primary py-4 mt-2 text-[15px]"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn btn-primary py-3"
-            >
-              {loading ? 'Authenticating...' : 'Sign In'}
-            </button>
-          </form>
-
-          <p className="mt-8 text-center text-sm font-medium text-slate-500">
-            New here?{' '}
-            <Link to="/signup" className="text-slate-900 font-bold hover:underline">Create an account</Link>
-          </p>
-        </div>
-        
-        <div className="mt-8 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">© 2026 Vyapaar Flow</p>
-        </div>
+        <p className="mt-10 text-center text-[14px] font-medium text-zinc-500">
+          New here?{' '}
+          <Link to="/signup" className="text-v-accent font-bold hover:underline transition-colors">Create account</Link>
+        </p>
+      </div>
+      
+      <div className="mt-10 text-center">
+        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-[0.2em]">© 2026 VyapaarFlow • Private Beta</p>
       </div>
     </div>
   );

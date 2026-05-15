@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getClients, createClient, updateClient, deleteClient } from '../api';
+import { fetchClients, onboardClient, modifyClient, archiveClient } from '../api';
 import { useToast } from '../context/ToastContext';
 
 export const useClients = () => {
   return useQuery({
     queryKey: ['clients'],
-    queryFn: getClients,
+    queryFn: fetchClients,
   });
 };
 
@@ -14,7 +14,7 @@ export const useCreateClient = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: createClient,
+    mutationFn: onboardClient,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       addToast('Client created successfully', 'success');
@@ -30,7 +30,7 @@ export const useUpdateClient = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: ({ id, data }) => updateClient(id, data),
+    mutationFn: ({ id, data }) => modifyClient(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       addToast('Client updated successfully', 'success');
@@ -46,7 +46,7 @@ export const useDeleteClient = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: deleteClient,
+    mutationFn: archiveClient,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       addToast('Client deleted successfully', 'success');

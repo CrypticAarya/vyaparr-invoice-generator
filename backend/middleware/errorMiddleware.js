@@ -55,6 +55,19 @@ const errorMiddleware = (err, req, res, next) => {
       error.statusCode = 400;
       error.isOperational = true;
     }
+    // Prisma Error Handling
+    if (error.code === 'P2002') {
+      const field = error.meta?.target || 'field';
+      error.message = `Duplicate value for ${field}. Please use another value!`;
+      error.statusCode = 400;
+      error.isOperational = true;
+    }
+    if (error.code === 'P2025') {
+      error.message = 'Record not found.';
+      error.statusCode = 404;
+      error.isOperational = true;
+    }
+
     if (error.name === 'JsonWebTokenError') {
       error.message = 'Invalid token. Please log in again!';
       error.statusCode = 401;

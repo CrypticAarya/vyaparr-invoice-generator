@@ -34,7 +34,7 @@ const HistorySidebar = ({ history, onClose, onSelect, onManage }) => {
               {(history || []).map((inv) => (
                 <motion.div
                   whileHover={{ scale: 1.02, y: -2 }}
-                  key={inv._id}
+                  key={inv.id}
                   onClick={() => onSelect(inv)}
                   className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-[0_4px_12px_rgb(0,0,0,0.02)] cursor-pointer hover:border-violet-300 hover:shadow-[0_8px_24px_rgb(139,92,246,0.08)] transition-all group"
                 >
@@ -63,7 +63,7 @@ const HistorySidebar = ({ history, onClose, onSelect, onManage }) => {
                         </button>
                       )}
                       <button 
-                        onClick={(e) => { e.stopPropagation(); onSelect({ ...inv, _id: undefined, invoiceNumber: 'INV-' + Math.floor(1000 + Math.random() * 9000) }); }}
+                        onClick={(e) => { e.stopPropagation(); onSelect({ ...inv, id: undefined, invoiceNumber: 'INV-' + Math.floor(1000 + Math.random() * 9000) }); }}
                         className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded"
                       >
                         Duplicate

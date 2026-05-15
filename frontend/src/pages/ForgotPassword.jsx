@@ -1,68 +1,97 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { NavLink } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import { forgotPassword } from '../api';
-import Button from '../ui/Button';
-import Input from '../ui/Input';
 
-export default function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState({ type: '', message: '' });
+const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  
+  const { addToast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setStatus({ type: '', message: '' });
-
+    setError('');
+    
     try {
       await forgotPassword(email);
-      setStatus({ type: 'success', message: 'If an account exists, a reset link has been sent.' });
+      setSuccess(true);
+      addToast('Reset link sent to your email', 'success');
     } catch (err) {
-      setStatus({ type: 'error', message: 'Failed to request reset. Please try again.' });
+      setError(err.message || 'Failed to send reset email');
+      addToast('Request failed', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-10"
-      >
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Recover Access</h1>
-          <p className="text-slate-500 font-bold mt-2">Enter your email to receive a secure reset link.</p>
+    <div className="w-full max-w-[420px] mx-auto animate-in fade-in zoom-in-95 duration-500 relative z-10">
+      <div className="premium-card p-10 sm:p-14 relative overflow-hidden bg-white/80 backdrop-blur-xl">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-v-accent to-v-sky"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-v-sky/30 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+        
+        <div className="mb-10 flex flex-col items-center">
+          <Link to="/login" className="w-14 h-14 bg-v-accent rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_25px_-5px_rgba(109,94,245,0.4)] hover:scale-105 transition-transform">
+            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          </Link>
+          <h2 className="sketch-title text-4xl font-bold tracking-tight text-center">Reset Password</h2>
+          <p className="text-zinc-500 text-[14px] font-medium mt-2 text-center">
+            {success ? "Check your email for the reset link." : "Enter your email to receive a reset link."}
+          </p>
         </div>
 
-        {status.message && (
-          <div className={`mb-6 p-4 rounded-2xl text-sm font-bold ${status.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-            {status.message}
+        {!success ? (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Work Email</label>
+              <input
+                name="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="w-full bg-white border border-black/5 rounded-2xl px-5 py-3.5 text-[14px] outline-none transition-all focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 placeholder:text-zinc-400 shadow-sm"
+              />
+            </div>
+
+            {error && (
+              <div className="text-rose-600 text-[13px] font-bold bg-rose-50 p-4 rounded-2xl border border-rose-100 flex items-center gap-3">
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full btn-premium btn-premium-primary py-4 mt-2 text-[15px]"
+            >
+              {loading ? 'Sending link...' : 'Send Reset Link'}
+            </button>
+          </form>
+        ) : (
+          <div className="text-center space-y-6">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <Link to="/login" className="block w-full btn-premium btn-premium-secondary py-4 text-[15px]">
+              Return to login
+            </Link>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Input 
-            label="Email Address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@company.com"
-            required
-          />
-
-          <Button type="submit" loading={loading} className="w-full">
-            Send Reset Link
-          </Button>
-        </form>
-
-        <div className="mt-8 text-center">
-          <NavLink to="/login" className="text-sm font-black text-indigo-600 hover:underline">
-            Back to Secure Login
-          </NavLink>
-        </div>
-      </motion.div>
+      </div>
+      
+      <div className="mt-10 text-center">
+        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-[0.2em]">© 2026 VyapaarFlow</p>
+      </div>
     </div>
   );
-}
+};
+
+export default ForgotPassword;

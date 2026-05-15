@@ -1,48 +1,30 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import prisma from '../lib/prisma.js';
 
+/**
+ * Multi-DB Connection Handler
+ * Connects to PostgreSQL (via Prisma) and optionally MongoDB for legacy support.
+ */
 export const connectDB = async () => {
   const isProduction = process.env.NODE_ENV === 'production';
-  let uri = process.env.MONGODB_URI || process.env.MONGO_URI;
+  
+  // 1. PostgreSQL (Primary)
+  try {
+    await prisma.$connect();
+    console.log('✅ PostgreSQL Connected (Prisma)');
+  } catch (err) {
+    console.error('❌ PostgreSQL Connection Failure:', err.message);
+    if (isProduction) process.exit(1);
+  }
 
-  const mongooseOptions = {
-    autoIndex: !isProduction, // Disable auto-indexing in production for performance
-    maxPoolSize: 10,
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-  };
+  // 2. MongoDB (Legacy Fallback)
+  let mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) return;
 
   try {
-    if (!uri && !isProduction) {
-      console.log("⚠️ No MongoDB URI. Provisioning in-memory dev database...");
-      const mongoServer = await MongoMemoryServer.create();
-      uri = mongoServer.getUri();
-    }
-
-    if (!uri && isProduction) {
-      throw new Error("FATAL: MONGODB_URI is required in production.");
-    }
-
-    await mongoose.connect(uri, mongooseOptions);
-    
-    mongoose.connection.on('error', err => {
-      console.error(`❌ MongoDB Runtime Error: ${err}`);
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️ MongoDB Disconnected. Reconnecting...');
-    });
-
-    console.log(`✅ MongoDB Connected: ${uri.includes('memory') ? 'Dev Memory' : 'Production Cluster'}`);
+    await mongoose.connect(mongoUri);
+    console.log('✅ MongoDB Connected (Legacy Support)');
   } catch (err) {
-    console.error("❌ MongoDB Initial Connection Failure:", err.message);
-    
-    if (!isProduction) {
-      console.log("🔄 Retrying with local in-memory fallback...");
-      const mongoServer = await MongoMemoryServer.create();
-      await mongoose.connect(mongoServer.getUri());
-    } else {
-      process.exit(1);
-    }
+    console.warn('⚠️ MongoDB Legacy Connection Failed. Proceeding with PostgreSQL only.');
   }
 };

@@ -1,109 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kalam:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 :root {
-  --primary: #0f172a;
-  --primary-hover: #1e293b;
-  --accent: #10b981; 
-  --accent-hover: #059669;
-  --bg-main: #f8fafc;
-  --sidebar-bg: #ffffff;
-  --border-subtle: #f1f5f9;
+  --v-bg: #F6F3EE;
+  --v-text: #111111;
+  --v-accent: #6D5EF5;
+  --v-lavender: #E8E7FF;
+  --v-mint: #E2F4E9;
+  --v-sky: #E1F0FF;
+  --v-peach: #FFEDE2;
 }
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 font-inter antialiased selection:bg-slate-900 selection:text-white;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-color: var(--v-bg);
+    color: var(--v-text);
+    @apply font-sans antialiased selection:bg-indigo-500/30 selection:text-black;
+    position: relative;
   }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.015;
+    z-index: 9999;
+  }
+
   h1, h2, h3, h4 {
-    @apply font-bold tracking-tight text-slate-900;
+    color: var(--v-text);
+    @apply tracking-tight font-bold;
   }
 }
 
 @layer components {
-  /* High-Density Sidebar */
-  .pro-sidebar {
-    @apply bg-white border-r border-slate-200 w-60 fixed h-full z-40 transition-all duration-300;
+  .sketch-title, .kalam {
+    font-family: 'Kalam', cursive;
+    color: var(--v-text);
+  }
+
+  .premium-card {
+    @apply bg-white border border-black/[0.04] rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-500;
+  }
+
+  .floating-element {
+    animation: floating 6s ease-in-out infinite;
+  }
+
+  .ai-input-bar {
+    @apply w-full max-w-2xl bg-white border border-black/5 rounded-[32px] px-8 py-5 text-lg shadow-[0_20px_50px_rgba(0,0,0,0.04)] outline-none transition-all focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/20 placeholder:text-zinc-400 font-medium;
   }
 
   .nav-item {
-    @apply flex items-center gap-2.5 px-3 py-2 mx-3 my-0.5 rounded-md text-slate-500 font-medium transition-all hover:bg-slate-50 hover:text-slate-900 text-sm;
+    @apply flex items-center gap-3 px-4 py-3 rounded-2xl text-zinc-500 font-medium transition-all hover:bg-black/[0.03] text-[14px];
+  }
+  
+  .nav-item:hover {
+    color: var(--v-text);
   }
 
   .nav-item-active {
-    @apply bg-slate-100 text-slate-900 font-bold shadow-none hover:bg-slate-200;
+    @apply bg-white shadow-[0_4px_12px_rgba(0,0,0,0.03)] font-semibold border border-black/[0.02];
+    color: var(--v-text);
   }
 
-  /* Professional Data Cards */
-  .data-card {
-    @apply bg-white border border-slate-200 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-all p-5;
+  .btn-premium {
+    @apply px-6 py-3 rounded-[24px] font-bold text-[14px] transition-all active:scale-[0.95] flex items-center justify-center gap-2;
   }
 
-  .stat-card {
-    @apply bg-white border border-slate-200 rounded-lg shadow-sm p-4 flex flex-col gap-0.5;
+  .btn-premium-primary {
+    @apply text-white shadow-[0_10px_25px_-5px_rgba(109,94,245,0.4)];
+    background-color: var(--v-accent);
+  }
+  
+  .btn-premium-primary:hover {
+    filter: brightness(1.1);
   }
 
-  .stat-label {
-    @apply text-[10px] font-bold uppercase tracking-widest text-slate-400;
+  .btn-premium-secondary {
+    @apply bg-white border border-black/5 hover:bg-zinc-50 shadow-sm;
+    color: var(--v-text);
   }
+}
 
-  .stat-value {
-    @apply text-xl font-bold text-slate-900 tracking-tight;
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
+}
 
-  /* Form & Inputs - Stripe Style */
-  .input-field {
-    @apply w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md text-slate-900 text-sm outline-none transition-all focus:border-slate-400 focus:ring-0 placeholder:text-slate-400 shadow-sm;
-  }
-
-  .btn {
-    @apply px-3 py-1.5 rounded-md font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2;
-  }
-
-  .btn-primary {
-    @apply bg-slate-900 text-white hover:bg-slate-800 shadow-[0_1px_2px_rgba(0,0,0,0.1)];
-  }
-
-  .btn-secondary {
-    @apply bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm;
-  }
-
-  .btn-accent {
-    @apply bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm;
-  }
-
-  .btn-ghost {
-    @apply text-slate-500 hover:bg-slate-100 hover:text-slate-900;
-  }
-
-  /* Layout */
-  .page-container {
-    @apply p-6 lg:p-10 max-w-7xl mx-auto;
-  }
-
-  .table-container {
-    @apply bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm;
-  }
-
-  .pro-table {
-    @apply w-full text-left border-collapse;
-  }
-
-  .pro-table th {
-    @apply px-4 py-2.5 bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-widest;
-  }
-
-  .pro-table td {
-    @apply px-4 py-3 border-b border-slate-100 text-sm font-medium text-slate-600;
-  }
-
-  .pro-table tr:last-child td {
-    @apply border-b-0;
-  }
+@keyframes floating {
+  0% { transform: translateY(0px) rotate(var(--rotation, 0deg)); }
+  50% { transform: translateY(-15px) rotate(calc(var(--rotation, 0deg) + 2deg)); }
+  100% { transform: translateY(0px) rotate(var(--rotation, 0deg)); }
 }
 
 /* Custom scrollbar */
@@ -115,25 +112,5 @@
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300;
-}
-
-/* Skeleton Loaders */
-@keyframes shimmer {
-  0% { background-position: -468px 0; }
-  100% { background-position: 468px 0; }
-}
-
-.skeleton {
-  background: #f6f7f8;
-  background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
-  background-repeat: no-repeat;
-  background-size: 800px 104px;
-  display: inline-block;
-  position: relative;
-  animation-duration: 1s;
-  animation-fill-mode: forwards;
-  animation-iteration-count: infinite;
-  animation-name: shimmer;
-  animation-timing-function: linear;
+  @apply bg-zinc-200 rounded-full hover:bg-zinc-300;
 }

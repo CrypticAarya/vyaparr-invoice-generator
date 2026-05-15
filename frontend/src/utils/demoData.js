@@ -18,7 +18,7 @@ export const INITIAL_EMPTY_ANALYTICS = {
 };
 
 export const DEMO_INVOICES = [
-  { _id: 'inv1', invoiceNumber: 'INV-7721', clientName: 'SpaceX Systems', totalAmount: 124000, status: 'final', dateIssued: '2026-05-01', createdAt: '2026-05-01' },
-  { _id: 'inv2', invoiceNumber: 'INV-7722', clientName: 'Neuralink Corp', totalAmount: 84500, status: 'draft', dateIssued: '2026-05-02', createdAt: '2026-05-02' },
-  { _id: 'inv3', invoiceNumber: 'INV-7723', clientName: 'Tesla Energy', totalAmount: 210000, status: 'final', dateIssued: '2026-04-28', createdAt: '2026-04-28' }
+  { id: 'inv1', invoiceNumber: 'INV-7721', clientName: 'SpaceX Systems', totalAmount: 124000, status: 'final', dateIssued: '2026-05-01', createdAt: '2026-05-01' },
+  { id: 'inv2', invoiceNumber: 'INV-7722', clientName: 'Neuralink Corp', totalAmount: 84500, status: 'draft', dateIssued: '2026-05-02', createdAt: '2026-05-02' },
+  { id: 'inv3', invoiceNumber: 'INV-7723', clientName: 'Tesla Energy', totalAmount: 210000, status: 'final', dateIssued: '2026-04-28', createdAt: '2026-04-28' }
 ];

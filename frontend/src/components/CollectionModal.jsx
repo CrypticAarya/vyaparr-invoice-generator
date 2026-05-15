@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { updatePayment, logCommunication } from '../api';
+import { recordInvoicePayment, trackCommunication } from '../api';
 import { useToast } from '../context/ToastContext';
 
 export default function CollectionModal({ invoice, onClose, onUpdate }) {
@@ -14,7 +14,7 @@ export default function CollectionModal({ invoice, onClose, onUpdate }) {
     setIsSaving(true);
     try {
       const newTotalPaid = (invoice.paidAmount || 0) + Number(paymentAmount);
-      const res = await updatePayment(invoice._id, { 
+      const res = await recordInvoicePayment(invoice.id, { 
         amount: newTotalPaid, 
         notes: paymentNotes 
       });
@@ -33,7 +33,7 @@ export default function CollectionModal({ invoice, onClose, onUpdate }) {
   const handleCommunication = async (type) => {
     try {
       const notes = type === 'email' ? 'Invoice sent via Email' : 'Invoice shared via WhatsApp';
-      await logCommunication(invoice._id, { action: type.toUpperCase(), notes });
+      await trackCommunication(invoice.id, { action: type.toUpperCase(), notes });
       addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} shared and logged.`, 'success');
       onUpdate();
     } catch (err) {

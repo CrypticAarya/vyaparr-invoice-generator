@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import html2pdf from 'html2pdf.js';
-import { saveInvoice, getInvoices, finalizeInvoice } from '../api';
+import { saveInvoiceRecord, fetchInvoices, lockInvoice } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -33,7 +33,7 @@ function Dashboard() {
       updateField('clientName', client.name);
       updateField('clientEmail', client.email || '');
       updateField('clientAddress', client.address || '');
-      updateField('clientId', client._id);
+      updateField('clientId', client.id);
       addToast(`Pre-filled for ${client.name}`, 'info');
     }
     if (location.state?.resumeInvoice) {
@@ -60,7 +60,7 @@ function Dashboard() {
 
   useEffect(() => {
     if (showHistory) {
-      getInvoices()
+      fetchInvoices()
         .then(setHistoryRecords)
         .catch(err => console.error("Failed to fetch history:", err));
     }
@@ -70,9 +70,9 @@ function Dashboard() {
     setIsSaving(true);
     setSaveSuccess(false);
     try {
-      const result = await saveInvoice({ ...invoiceDetails, ...calculations });
-      if (result.success && result.invoice?._id) {
-        setInvoiceDetails(prev => ({ ...prev, _id: result.invoice._id }));
+      const result = await saveInvoiceRecord({ ...invoiceDetails, ...calculations });
+      if (result.success && result.invoice?.id) {
+        setInvoiceDetails(prev => ({ ...prev, id: result.invoice.id }));
       }
       setSaveSuccess(true);
       addToast('Draft saved successfully', 'success');
@@ -107,13 +107,13 @@ function Dashboard() {
   };
 
   const handleFinalize = async () => {
-    if (!invoiceDetails._id) {
+    if (!invoiceDetails.id) {
       addToast('Please save draft first', 'warning');
       return;
     }
     try {
       setIsFinalizing(true);
-      const result = await finalizeInvoice(invoiceDetails._id);
+      const result = await lockInvoice(invoiceDetails.id);
       if (result.success) {
         setInvoiceDetails(prev => ({ ...prev, status: 'final' }));
         addToast('Invoice finalized', 'success');
@@ -151,7 +151,7 @@ function Dashboard() {
             invoice={managingCollectionInvoice} 
             onClose={() => setManagingCollectionInvoice(null)} 
             onUpdate={async () => {
-              const updated = await getInvoices();
+              const updated = await fetchInvoices();
               setHistoryRecords(updated.invoices || []);
             }}
           />
@@ -159,30 +159,30 @@ function Dashboard() {
       </AnimatePresence>
 
       {/* Header Toolbar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-[#121217] p-6 rounded-2xl border border-[#1E1E24] shadow-lg shadow-black/20">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Invoice Editor</h1>
-          <p className="text-xs font-medium text-slate-500">Draft your professional GST invoice</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Invoice Editor</h1>
+          <p className="text-[13px] font-medium text-zinc-500 mt-1">Draft your professional GST invoice</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {saveSuccess && (
-            <span className="text-[10px] font-bold uppercase text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+            <span className="text-[11px] font-bold uppercase text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/10 flex items-center gap-2">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
               Saved
             </span>
           )}
-          <button onClick={() => setShowHistory(true)} className="btn btn-secondary text-xs py-1.5">
+          <button onClick={() => setShowHistory(true)} className="btn btn-secondary px-4 py-2">
             History
           </button>
-          <button onClick={handleSaveDraft} disabled={isSaving} className="btn btn-secondary text-xs py-1.5">
+          <button onClick={handleSaveDraft} disabled={isSaving} className="btn btn-secondary px-4 py-2">
             {isSaving ? 'Saving...' : 'Save Draft'}
           </button>
-          <button onClick={handleExportPDF} disabled={isExporting} className="btn btn-secondary text-xs py-1.5">
+          <button onClick={handleExportPDF} disabled={isExporting} className="btn btn-secondary px-4 py-2">
             Export PDF
           </button>
           {invoiceDetails.status !== 'final' && (
-            <button onClick={handleFinalize} disabled={isFinalizing} className="btn btn-accent text-xs py-1.5">
+            <button onClick={handleFinalize} disabled={isFinalizing} className="btn btn-primary px-5 py-2">
               Finalize & Issue
             </button>
           )}

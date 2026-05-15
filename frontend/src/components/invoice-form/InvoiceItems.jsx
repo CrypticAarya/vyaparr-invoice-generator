@@ -51,7 +51,7 @@ const InvoiceItems = ({
                         className="text-[9px] font-bold text-slate-900 bg-transparent outline-none cursor-pointer"
                       >
                         <option value="">+ Inventory</option>
-                        {products.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                     </div>
                     <input 

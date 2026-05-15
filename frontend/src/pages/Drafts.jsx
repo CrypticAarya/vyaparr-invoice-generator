@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getInvoices, deleteInvoice } from '../api';
+import { fetchInvoices, removeInvoiceRecord } from '../api';
 import { useToast } from '../context/ToastContext';
 
 import { useNavigate } from 'react-router-dom';
@@ -11,27 +11,26 @@ export default function Drafts() {
   const { addToast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadDrafts();
-  }, []);
-
   const loadDrafts = async () => {
     try {
-      const data = await getInvoices();
-      const filtered = (data || []).filter(inv => inv.status === 'draft');
-      setDrafts(filtered);
+      const data = await fetchInvoices();
+      const draftInvoices = data.filter(inv => inv.status === 'draft');
+      setDrafts(draftInvoices);
+      setLoading(false);
     } catch (err) {
-      console.error(err);
-      setDrafts([]);
-    } finally {
+      addToast('Failed to load drafts', 'error');
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadDrafts();
+  }, []);
+
   const handleDelete = async (id) => {
     if (window.confirm('Delete this draft?')) {
       try {
-        await deleteInvoice(id);
+        await removeInvoiceRecord(id);
         addToast('Draft deleted', 'success');
         loadDrafts();
       } catch (err) {
@@ -67,7 +66,7 @@ export default function Drafts() {
           <AnimatePresence mode='popLayout'>
             {(drafts || []).map((draft) => (
               <motion.div
-                key={draft._id}
+                key={draft.id}
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -80,7 +79,7 @@ export default function Drafts() {
                     <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-amber-100 mb-4 block w-fit">Draft</span>
                     <h3 className="text-xl font-black text-slate-900">#{draft.invoiceNumber || 'Untitled'}</h3>
                   </div>
-                  <button onClick={() => handleDelete(draft._id)} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+                  <button onClick={() => handleDelete(draft.id)} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>

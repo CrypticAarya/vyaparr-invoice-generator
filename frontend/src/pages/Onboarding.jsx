@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { updateProfile } from '../api';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
 
 const Onboarding = () => {
   const { user, login } = useAuth();
@@ -48,25 +50,25 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+    <div className="min-h-screen bg-[#09090B] flex flex-col font-inter">
+      <header className="h-20 bg-[#121217]/50 backdrop-blur-xl border-b border-[#1E1E24] px-8 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
-          <span className="text-sm font-black text-slate-900 uppercase tracking-tighter">Vyapaar Flow</span>
+          <span className="text-lg font-bold text-white tracking-tight">VyapaarFlow</span>
         </div>
-        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Setup Phase {step} / 3</div>
+        <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest bg-zinc-800/50 px-3 py-1 rounded-full border border-white/5">Setup Phase {step} / 3</div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-xl bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent">
+        <div className="w-full max-w-xl bg-[#121217] border border-[#1E1E24] rounded-3xl shadow-2xl shadow-black/50 overflow-hidden animate-in zoom-in-95 duration-500">
           <div className="p-8 sm:p-12">
             <AnimatePresence mode="wait">
               {step === 1 && (
-                <motion.div key="step1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Workspace Configuration</h2>
-                  <p className="text-sm font-medium text-slate-500 mb-8">Select your primary business model to optimize your workflow.</p>
+                <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <h2 className="text-2xl font-bold text-white mb-2">Workspace Configuration</h2>
+                  <p className="text-[13px] font-medium text-zinc-500 mb-8">Select your primary business model to optimize your workflow.</p>
                   
                   <div className="space-y-3 mb-10">
                     {[
@@ -77,83 +79,108 @@ const Onboarding = () => {
                       <div 
                         key={type.id}
                         onClick={() => setFormData({...formData, businessType: type.id})}
-                        className={`cursor-pointer rounded-xl p-4 border transition-all flex items-center justify-between ${formData.businessType === type.id ? 'border-slate-900 bg-slate-50' : 'border-slate-100 hover:border-slate-300'}`}
+                        className={`cursor-pointer rounded-2xl p-5 border transition-all flex items-center justify-between group ${formData.businessType === type.id ? 'border-indigo-500 bg-indigo-500/5' : 'border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-800/30'}`}
                       >
                         <div>
-                          <p className="text-sm font-bold text-slate-900">{type.title}</p>
-                          <p className="text-xs text-slate-500">{type.desc}</p>
+                          <p className={`text-[15px] font-bold transition-colors ${formData.businessType === type.id ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>{type.title}</p>
+                          <p className="text-[12px] font-medium text-zinc-500">{type.desc}</p>
                         </div>
-                        <div className={`w-4 h-4 rounded-full border-2 ${formData.businessType === type.id ? 'border-slate-900 bg-slate-900' : 'border-slate-200'}`}>
-                          {formData.businessType === type.id && <div className="w-full h-full border-2 border-white rounded-full"></div>}
+                        <div className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${formData.businessType === type.id ? 'border-indigo-500' : 'border-zinc-700'}`}>
+                          {formData.businessType === type.id && <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></div>}
                         </div>
                       </div>
                     ))}
                   </div>
                   
-                  <div className="flex justify-end pt-6 border-t border-slate-50">
-                    <button onClick={handleNext} className="btn btn-primary px-8">Next Step</button>
+                  <div className="flex justify-end pt-8 border-t border-zinc-800/50">
+                    <Button onClick={handleNext} className="px-10 py-3">Next Step</Button>
                   </div>
                 </motion.div>
               )}
 
               {step === 2 && (
-                <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Legal Identity</h2>
-                  <p className="text-sm font-medium text-slate-500 mb-8">Enter your registered business details for tax-compliant invoicing.</p>
+                <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <h2 className="text-2xl font-bold text-white mb-2">Legal Identity</h2>
+                  <p className="text-[13px] font-medium text-zinc-500 mb-8">Enter your registered business details for tax-compliant invoicing.</p>
                   
-                  <div className="space-y-4 mb-10">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Legal Name</label>
-                      <input name="businessName" value={formData.businessName} onChange={handleChange} placeholder="Acme Inc." className="input-field" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">GSTIN / PAN</label>
-                      <input name="gstin" value={formData.gstin} onChange={handleChange} placeholder="27AAACR1234A1Z1" className="input-field uppercase" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Registered Address</label>
-                      <textarea name="businessAddress" value={formData.businessAddress} onChange={handleChange} rows={3} placeholder="Full address for tax purposes..." className="input-field py-3" />
+                  <div className="space-y-5 mb-10">
+                    <Input 
+                      label="Legal Business Name" 
+                      name="businessName" 
+                      value={formData.businessName} 
+                      onChange={handleChange} 
+                      placeholder="Acme Inc." 
+                    />
+                    <Input 
+                      label="GSTIN / PAN (Optional)" 
+                      name="gstin" 
+                      value={formData.gstin} 
+                      onChange={handleChange} 
+                      placeholder="27AAACR1234A1Z1" 
+                      className="uppercase"
+                    />
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">Registered Address</label>
+                      <textarea 
+                        name="businessAddress" 
+                        value={formData.businessAddress} 
+                        onChange={handleChange} 
+                        rows={3} 
+                        placeholder="Full address for tax purposes..." 
+                        className="w-full bg-[#121217] border border-[#1E1E24] rounded-xl px-4 py-3 text-[13px] font-medium text-white placeholder-zinc-600 outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                      />
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-6 border-t border-slate-50">
-                    <button onClick={handlePrev} className="btn btn-secondary">Back</button>
-                    <button onClick={handleNext} disabled={!formData.businessName.trim()} className="btn btn-primary px-8">Continue</button>
+                  <div className="flex justify-between pt-8 border-t border-zinc-800/50">
+                    <Button variant="secondary" onClick={handlePrev}>Back</Button>
+                    <Button onClick={handleNext} disabled={!formData.businessName.trim()} className="px-10">Continue</Button>
                   </div>
                 </motion.div>
               )}
 
               {step === 3 && (
-                <motion.div key="step3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Settlement Details</h2>
-                  <p className="text-sm font-medium text-slate-500 mb-8">Configure your preferred payment receiving methods.</p>
+                <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <h2 className="text-2xl font-bold text-white mb-2">Settlement Details</h2>
+                  <p className="text-[13px] font-medium text-zinc-500 mb-8">Configure your preferred payment receiving methods.</p>
                   
-                  <div className="space-y-4 mb-10">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">UPI VPA</label>
-                      <input name="upiId" value={formData.upiId} onChange={handleChange} placeholder="business@upi" className="input-field" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Bank Transfer Instructions (RTGS/NEFT)</label>
-                      <textarea name="bankDetails" value={formData.bankDetails} onChange={handleChange} rows={4} placeholder="Bank: HDFC Bank\nA/C No: 1234567890\nIFSC: HDFC0001234" className="input-field py-3" />
+                  <div className="space-y-5 mb-10">
+                    <Input 
+                      label="UPI ID / VPA" 
+                      name="upiId" 
+                      value={formData.upiId} 
+                      onChange={handleChange} 
+                      placeholder="business@upi" 
+                    />
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">Bank Transfer Instructions</label>
+                      <textarea 
+                        name="bankDetails" 
+                        value={formData.bankDetails} 
+                        onChange={handleChange} 
+                        rows={4} 
+                        placeholder="Bank: HDFC Bank\nA/C No: 1234567890\nIFSC: HDFC0001234" 
+                        className="w-full bg-[#121217] border border-[#1E1E24] rounded-xl px-4 py-3 text-[13px] font-medium text-white placeholder-zinc-600 outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                      />
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-6 border-t border-slate-50">
-                    <button onClick={handlePrev} className="btn btn-secondary" disabled={loading}>Back</button>
-                    <button onClick={handleSubmit} disabled={loading} className="btn btn-primary px-8">
-                      {loading ? 'Finalizing...' : 'Complete Setup'}
-                    </button>
+                  <div className="flex justify-between pt-8 border-t border-zinc-800/50">
+                    <Button variant="secondary" onClick={handlePrev} disabled={loading}>Back</Button>
+                    <Button onClick={handleSubmit} isLoading={loading} className="px-10">
+                      Complete Setup
+                    </Button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
-        <p className="mt-8 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Secure Cloud Infrastructure • ISO Compliant</p>
+        <p className="mt-10 text-[10px] font-bold text-zinc-600 uppercase tracking-[0.3em]">Secure Cloud Infrastructure • ISO 27001</p>
       </main>
     </div>
   );
 };
 
 export default Onboarding;
+

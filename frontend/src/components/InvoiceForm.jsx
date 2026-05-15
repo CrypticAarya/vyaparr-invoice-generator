@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getClients, getProducts } from '../api';
+import { fetchClients, fetchProducts } from '../api';
 
 // Sub-components
 import DocumentInfo from './invoice-form/DocumentInfo';
@@ -20,7 +20,7 @@ const InvoiceForm = ({
 
   const loadSelectionData = async () => {
     try {
-      const [cData, pData] = await Promise.all([getClients(), getProducts()]);
+      const [cData, pData] = await Promise.all([fetchClients(), fetchProducts()]);
       setClients(cData);
       setProducts(pData);
     } catch (err) {
@@ -29,24 +29,24 @@ const InvoiceForm = ({
   };
 
   const handleClientSelect = (clientId) => {
-    const client = clients.find(c => c._id === clientId);
+    const client = clients.find(c => c.id === clientId);
     if (client) {
       updateField('clientName', client.name);
       updateField('clientEmail', client.email || '');
       updateField('clientAddress', client.address || '');
-      updateField('clientId', client._id);
+      updateField('clientId', client.id);
       updateField('clientGstin', client.gstin || '');
     }
   };
 
   const handleProductSelect = (itemId, productId) => {
-    const product = products.find(p => p._id === productId);
+    const product = products.find(p => p.id === productId);
     if (product) {
       updateItem(itemId, 'description', product.name);
       updateItem(itemId, 'rate', product.unitPrice);
       updateItem(itemId, 'hsn', product.hsn || '');
       updateItem(itemId, 'gstSlab', product.gstSlab || 18);
-      updateItem(itemId, 'productId', product._id);
+      updateItem(itemId, 'productId', product.id);
     }
   };
 

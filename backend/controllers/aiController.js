@@ -1,10 +1,8 @@
-import OpenAI from 'openai';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
 import AiService from '../services/AiService.js';
-import Invoice from '../models/Invoice.js';
-import Client from '../models/Client.js';
-import Product from '../models/Product.js';
+import AnalyticsService from '../services/AnalyticsService.js';
+import OpenAI from 'openai';
 
 // Initialize the OpenAI client lazily
 let openaiClient = null;
@@ -19,62 +17,16 @@ const getOpenAIClient = () => {
 
 /**
  * AI Powered Business Insights
- * Analyzes real application data to provide actionable intelligence.
  */
 export const getBusinessInsights = catchAsync(async (req, res, next) => {
-  const userId = req.user.id;
+  // 1. Fetch data context using the AnalyticsService (Relational/Prisma)
+  const dashboardData = await AnalyticsService.getDashboardData(req.user.id);
 
-  // 1. Fetch data context (Similar to analyticsController but raw)
-  const invoices = await Invoice.find({ userId });
-  const clients = await Client.find({ userId });
-  const products = await Product.find({ userId });
-
-  const revenueInvoices = invoices.filter(inv => ['final', 'paid', 'partial', 'overdue'].includes(inv.status));
-  const totalRevenue = revenueInvoices.reduce((acc, inv) => acc + (Number(inv.total) || 0), 0);
-  
-  const pendingPayments = invoices
-    .filter(inv => ['final', 'partial', 'overdue'].includes(inv.status))
-    .reduce((acc, inv) => acc + ((Number(inv.total) || 0) - (Number(inv.paidAmount) || 0)), 0);
-
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-  const currentMonthRev = revenueInvoices
-    .filter(inv => {
-      const d = new Date(inv.createdAt);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    })
-    .reduce((acc, inv) => acc + (inv.total || 0), 0);
-
-  const lastMonthRev = revenueInvoices
-    .filter(inv => {
-      const d = new Date(inv.createdAt);
-      return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
-    })
-    .reduce((acc, inv) => acc + (inv.total || 0), 0);
-
-  const revenueGrowth = lastMonthRev === 0 ? 100 : ((currentMonthRev - lastMonthRev) / lastMonthRev) * 100;
-  const lowStockCount = products.filter(p => !p.isService && p.stockQuantity <= p.lowStockThreshold).length;
-  const inventoryHealth = products.filter(p => !p.isService).length === 0 ? 100 : Math.max(0, ((products.filter(p => !p.isService).length - lowStockCount) / products.filter(p => !p.isService).length) * 100);
-
-  // 2. Aggregate Data for AI Service
+  // 2. Map context for the AI service
   const dataContext = {
-    metrics: {
-      totalRevenue,
-      revenueGrowth: Math.round(revenueGrowth),
-      pendingPayments,
-      inventoryHealth: Math.round(inventoryHealth),
-      lowStockCount
-    },
+    metrics: dashboardData.metrics,
     charts: {
-      topProducts: products
-        .sort((a, b) => (b.totalRevenueGenerated || 0) - (a.totalRevenueGenerated || 0))
-        .slice(0, 3)
-        .map(p => ({ name: p.name, revenue: p.totalRevenueGenerated || 0 })),
-      topClients: [] // Simplified for prompt brevity
+      topProducts: dashboardData.charts.topProducts.slice(0, 3)
     }
   };
 
@@ -88,7 +40,7 @@ export const getBusinessInsights = catchAsync(async (req, res, next) => {
 });
 
 /**
- * Legacy Line Item Generation (Refactored)
+ * Line Item Generation
  */
 export const generateLineItems = catchAsync(async (req, res, next) => {
   const { prompt } = req.body;
@@ -98,7 +50,8 @@ export const generateLineItems = catchAsync(async (req, res, next) => {
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || apiKey.startsWith('sk-proj-xxx')) {
+  // If no real API key, fallback to mock
+  if (!apiKey || apiKey.startsWith('sk-proj-xxx') || apiKey === 'dummy_key') {
     return sendMockResponse(res, prompt);
   }
 

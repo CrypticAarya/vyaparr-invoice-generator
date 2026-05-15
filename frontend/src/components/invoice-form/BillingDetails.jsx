@@ -26,7 +26,7 @@ const BillingDetails = ({ data, updateField, clients, handleClientSelect }) => {
               className="text-[10px] font-bold text-slate-900 bg-slate-100 rounded px-2 py-0.5 outline-none cursor-pointer border-none"
             >
               <option value="">+ Saved Client</option>
-              {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <InputGroup label="Client Name" value={data.clientName} onChange={(e) => updateField('clientName', e.target.value)} />

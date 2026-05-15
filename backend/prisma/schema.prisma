@@ -1,0 +1,199 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  STAFF
+  ADMIN
+}
+
+enum InvoiceStatus {
+  DRAFT
+  FINAL
+  PAID
+  PARTIAL
+  OVERDUE
+}
+
+model User {
+  id                    String    @id @default(uuid())
+  email                 String    @unique
+  name                  String
+  password              String
+  role                  Role      @default(USER)
+  isVerified            Boolean   @default(false)
+  refreshToken          String?
+  
+  // Security Tokens
+  passwordResetToken    String?
+  passwordResetExpires  DateTime?
+  verificationToken     String?
+  verificationExpires   DateTime?
+
+  // Onboarding / Business Profile
+  isOnboarded           Boolean   @default(false)
+  businessName          String?
+  businessAddress       String?
+  businessType          String?
+  bankDetails           String?
+  upiId                 String?
+  currency              String    @default("USD")
+  taxRate               Float     @default(0)
+
+  // Relations
+  clients               Client[]
+  products              Product[]
+  invoices              Invoice[]
+  stockTransactions     StockTransaction[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Client {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name            String
+  company         String?
+  gstin           String?
+  phone           String?
+  email           String?
+  address         String?
+  pendingAmount   Float     @default(0)
+  notes           String?
+
+  invoices        Invoice[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Product {
+  id                    String    @id @default(uuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name                  String
+  description           String?
+  hsn                   String?
+  unitPrice             Float     @default(0)
+  unit                  String    @default("PCS")
+  gstSlab               Int       @default(18)
+  sku                   String?
+  stockQuantity         Int       @default(0)
+  lowStockThreshold     Int       @default(10)
+  isService             Boolean   @default(false)
+  category              String?
+  
+  usageCount            Int       @default(0)
+  totalRevenueGenerated Float     @default(0)
+
+  invoiceItems          InvoiceItem[]
+  stockTransactions     StockTransaction[]
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  clientId        String?
+  client          Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  
+  invoiceNumber   String?       @unique
+  dateIssued      DateTime?
+  dueDate         DateTime?
+  
+  // These fields snapshot the state at creation time
+  businessName    String?
+  businessAddress String?
+  clientName      String?
+  clientAddress   String?
+  
+  subtotal        Float         @default(0)
+  tax             Float         @default(0)
+  total           Float         @default(0)
+  
+  status          InvoiceStatus @default(DRAFT)
+  paidAmount      Float         @default(0)
+  paymentNotes    String?
+  notes           String?
+
+  items           InvoiceItem[]
+  communication   CommunicationLog[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([clientId])
+}
+
+model InvoiceItem {
+  id          String    @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  productId   String?
+  product     Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  description String
+  hsn         String?
+  qty         Int       @default(1)
+  rate        Float     @default(0)
+  gstSlab     Int       @default(18)
+  discount    Float     @default(0)
+  total       Float
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+model CommunicationLog {
+  id          String    @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  action      String
+  notes       String?
+  date        DateTime  @default(now())
+
+  @@index([invoiceId])
+}
+
+model StockTransaction {
+  id          String    @id @default(uuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String    // "IN", "OUT", "ADJUSTMENT"
+  quantity    Int
+  balance     Int
+  referenceId String?   // e.g. Invoice ID
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+
+  @@index([productId])
+  @@index([userId])
+}

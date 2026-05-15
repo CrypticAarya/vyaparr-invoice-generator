@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getInvoices, deleteInvoice } from '../api';
+import { fetchInvoices, removeInvoiceRecord } from '../api';
 import { useToast } from '../context/ToastContext';
 
 import { useNavigate } from 'react-router-dom';
@@ -12,13 +11,9 @@ export default function History() {
   const { addToast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
-
   const loadHistory = async () => {
     try {
-      const data = await getInvoices();
+      const data = await fetchInvoices();
       const filtered = (data || []).filter(inv => inv.status !== 'draft');
       setInvoices(filtered);
     } catch (err) {
@@ -29,10 +24,14 @@ export default function History() {
     }
   };
 
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
   const handleDelete = async (id) => {
     if (window.confirm('Archive this invoice permanently?')) {
       try {
-        await deleteInvoice(id);
+        await removeInvoiceRecord(id);
         addToast('Invoice archived', 'success');
         loadHistory();
       } catch (err) {
@@ -42,7 +41,7 @@ export default function History() {
   };
 
   const handleDuplicate = (invoice) => {
-    const { _id, createdAt, updatedAt, ...rest } = invoice;
+    const { id, createdAt, updatedAt, ...rest } = invoice;
     navigate('/new-invoice', { state: { resumeInvoice: { ...rest, status: 'draft', invoiceNumber: rest.invoiceNumber + '-COPY' } } });
   };
 
@@ -89,7 +88,7 @@ export default function History() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {(invoices || []).map((inv) => (
-                  <tr key={inv._id} className="hover:bg-slate-50/80 transition-all group">
+                  <tr key={inv.id} className="hover:bg-slate-50/80 transition-all group">
                     <td className="px-10 py-6">
                       <p className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors">#{inv.invoiceNumber}</p>
                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">FINALIZED</p>
@@ -123,7 +122,7 @@ export default function History() {
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         </button>
                         <button 
-                          onClick={() => handleDelete(inv._id)}
+                          onClick={() => handleDelete(inv.id)}
                           className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                           title="Delete Record"
                         >

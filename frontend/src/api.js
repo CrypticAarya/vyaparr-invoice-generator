@@ -1,135 +1,124 @@
 import axios from 'axios';
 
 /**
- * API CONFIGURATION
- * We dynamically detect the environment and point to the correct backend.
- * Local development defaults to 5001 to avoid macOS system port conflicts.
+ * VYAPAARFLOW API CLIENT
+ * 
+ * We use Axios for our communication layer. This client handles:
+ * 1. Dynamic environment detection (Dev vs Production).
+ * 2. Automatic JWT injection via interceptors.
+ * 3. Silent session refreshing using secure httpOnly cookies.
  */
-const VITE_API = import.meta.env.VITE_API_URL;
-let BASE_URL = (VITE_API && VITE_API !== '') 
-  ? VITE_API 
-  : 'http://localhost:5001/api';
 
-// Standardization: Always ensure the /api suffix exists for consistent routing.
-if (BASE_URL && !BASE_URL.includes('/api')) {
-  BASE_URL = `${BASE_URL.replace(/\/$/, '')}/api`;
-}
+const API_ENDPOINT = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-const api = axios.create({
+// Normalize the base URL to ensure it always ends correctly for relative routes
+const BASE_URL = API_ENDPOINT.endsWith('/api') ? API_ENDPOINT : `${API_ENDPOINT.replace(/\/$/, '')}/api`;
+
+const apiClient = axios.create({
   baseURL: BASE_URL,
+  withCredentials: true, // Crucial for sending/receiving secure cookies
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 /**
- * REQUEST INTERCEPTOR
- * Automatically attaches the Bearer token to every outgoing request 
- * if a valid session exists in localStorage.
+ * AUTH ATTACHMENT
+ * Before every request, we check if we have a short-lived access token.
  */
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('vyaparflow_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+apiClient.interceptors.request.use((config) => {
+  const accessToken = localStorage.getItem('vyaparflow_token');
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
 
 /**
- * RESPONSE INTERCEPTOR
- * Handles silent token refreshing for expired sessions.
- * If a 401 error occurs, it attempts to use the refresh token before forcing a logout.
+ * SMART RETRY & ERROR HANDLING
+ * If the API returns 401 (Expired), we attempt to refresh the session 
+ * once before redirecting the user to login.
  */
-api.interceptors.response.use(
+apiClient.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     const originalRequest = error.config;
 
-    // Trigger refresh only if the status is 401 and we haven't already retried.
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('vyaparflow_refresh_token');
-
-      if (refreshToken) {
-        try {
-          // Exchange the refresh token for a new pair of tokens.
-          const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
-          
-          localStorage.setItem('vyaparflow_token', data.token);
-          localStorage.setItem('vyaparflow_refresh_token', data.refreshToken);
-
-          // Re-attempt the original request with the new identity.
-          originalRequest.headers.Authorization = `Bearer ${data.token}`;
-          return api(originalRequest);
-        } catch (refreshError) {
-          // If refresh fails (e.g., token expired/revoked), we purge the session.
-          clearSession();
-        }
-      } else {
-        clearSession();
+    // Check if the error is an expired session and we haven't tried refreshing yet
+    if (error.response?.status === 401 && !originalRequest._isRetry) {
+      originalRequest._isRetry = true;
+      
+      try {
+        // The refresh token is in a secure cookie, so we just hit the endpoint
+        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        
+        // Save the new access token and retry the original call
+        localStorage.setItem('vyaparflow_token', data.token);
+        originalRequest.headers.Authorization = `Bearer ${data.token}`;
+        
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed (cookie expired or revoked), kill the session
+        purgeSession();
       }
     }
 
-    // Pass through structured error messages from the backend or a sanitized fallback.
-    const errorData = error.response?.data || { 
+    // Wrap the error in a predictable structure for the UI
+    const errorResponse = error.response?.data || { 
       success: false, 
-      message: error.message || 'The workstation could not complete this request.',
+      message: 'The workstation lost connection to the server.',
       errors: [] 
     };
-    return Promise.reject(errorData);
+    
+    return Promise.reject(errorResponse);
   }
 );
 
-// Helper to sanitize the client state on session failure.
-const clearSession = () => {
+/**
+ * SESSION CLEANUP
+ * Clears all local evidence of a session and pushes the user to the login screen.
+ */
+const purgeSession = () => {
   localStorage.removeItem('vyaparflow_token');
-  localStorage.removeItem('vyaparflow_refresh_token');
   localStorage.removeItem('vyaparflow_user');
   window.location.href = '/login';
 };
 
 /**
- * EXPORTED API SERVICES
- * Organized by domain to reflect the business structure.
+ * DOMAIN SERVICES
  */
 
-// --- Authentication ---
-export const signupUser = (name, email, password) => api.post('/auth/signup', { name, email, password });
-export const loginUser = (email, password) => api.post('/auth/login', { email, password });
-export const logoutUser = () => api.post('/auth/logout');
-export const updateProfile = (data) => api.put('/auth/profile', data).then(res => res.data.user);
-export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
-export const resetPassword = (token, password) => api.post(`/auth/reset-password/${token}`, { password });
+// --- Auth & Identity ---
+export const signup = (name, email, password) => apiClient.post('/auth/signup', { name, email, password });
+export const login = (email, password) => apiClient.post('/auth/login', { email, password });
+export const logout = () => apiClient.post('/auth/logout');
+export const updateBusinessProfile = (profile) => apiClient.put('/auth/profile', profile).then(res => res.data.user);
+export const requestPasswordReset = (email) => apiClient.post('/auth/forgot-password', { email });
+export const submitNewPassword = (token, password) => apiClient.post(`/auth/reset-password/${token}`, { password });
 
-// --- Utilities ---
-export const fetchApi = (endpoint, options = {}) => {
-  const method = options.method?.toLowerCase() || 'get';
-  return api[method](endpoint, options.body ? JSON.parse(options.body) : undefined);
-};
+// --- Financial Documents (Invoices) ---
+export const fetchInvoices = () => apiClient.get('/invoices').then(res => res.data.invoices);
+export const saveInvoiceRecordRecord = (invoice) => invoice.id ? apiClient.put(`/invoices/${invoice.id}`, invoice) : apiClient.post('/invoices', invoice);
+export const removeInvoiceRecord = (id) => apiClient.delete(`/invoices/${id}`);
+export const lockInvoice = (id) => apiClient.post(`/invoices/finalize/${id}`);
+export const recordInvoicePayment = (id, info) => apiClient.put(`/invoices/payment/${id}`, info);
+export const trackCommunication = (id, log) => apiClient.post(`/invoices/communication/${id}`, log);
 
-// --- Invoices ---
-export const getInvoices = () => api.get('/invoices').then(res => res.data.invoices);
-export const saveInvoice = (data) => data._id ? api.put(`/invoices/${data._id}`, data) : api.post('/invoices', data);
-export const deleteInvoice = (id) => api.delete(`/invoices/${id}`);
-export const finalizeInvoice = (id) => api.post(`/invoices/finalize/${id}`);
-export const updatePayment = (id, data) => api.put(`/invoices/payment/${id}`, data);
-export const logCommunication = (id, data) => api.post(`/invoices/communication/${id}`, data);
+// --- Relationships (Clients) ---
+export const fetchClients = () => apiClient.get('/clients').then(res => res.data.clients);
+export const onboardClient = (client) => apiClient.post('/clients', client);
+export const modifyClient = (id, client) => apiClient.put(`/clients/${id}`, client);
+export const archiveClient = (id) => apiClient.delete(`/clients/${id}`);
 
-// --- Clients & Relationships ---
-export const getClients = () => api.get('/clients').then(res => res.data.clients);
-export const createClient = (data) => api.post('/clients', data);
-export const updateClient = (id, data) => api.put(`/clients/${id}`, data);
-export const deleteClient = (id) => api.delete(`/clients/${id}`);
+// --- Logistics (Products) ---
+export const fetchProducts = () => apiClient.get('/products').then(res => res.data.products);
+export const onboardProduct = (product) => apiClient.post('/products', product);
+export const modifyProduct = (id, product) => apiClient.put(`/products/${id}`, product);
+export const archiveProduct = (id) => apiClient.delete(`/products/${id}`);
 
-// --- Products & Inventory ---
-export const getProducts = () => api.get('/products').then(res => res.data.products);
-export const createProduct = (data) => api.post('/products', data);
-export const updateProduct = (id, data) => api.put(`/products/${id}`, data);
-export const deleteProduct = (id) => api.delete(`/products/${id}`);
+// --- Intelligence ---
+export const fetchBusinessAnalytics = (range) => apiClient.get(`/analytics?range=${range || '1Y'}`).then(res => res.data.analytics);
+export const aiParseLineItems = (prompt) => apiClient.post('/generate', { prompt });
+export const fetchAiCfoInsights = () => apiClient.get('/generate/insights').then(res => res.data.insights);
 
-// --- Business Intelligence (AI) ---
-export const getAnalytics = (range) => api.get(`/analytics?range=${range || '1Y'}`).then(res => res.data.analytics);
-export const generateAiItems = (prompt) => api.post('/generate', { prompt });
-export const getAiInsights = () => api.get('/generate/insights').then(res => res.data.insights);
-
-export default api;
+export default apiClient;

@@ -1,312 +1,253 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import User from '../models/User.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
 import auditLogger from '../utils/auditLogger.js';
+import UserService from '../services/UserService.js';
 
-// SECURE TOKEN CONFIGURATION:
-// We use a short-lived access token and a longer-lived refresh token for optimal security.
+/**
+ * AUTHENTICATION CONTROLLER
+ * 
+ * Manages the security perimeter of the application. 
+ * We use a dual-token strategy: 
+ * - Access Tokens: Short-lived (15m) for API authorization.
+ * - Refresh Tokens: Long-lived (7d) stored in secure httpOnly cookies.
+ */
+
 const ACCESS_SECRET = process.env.JWT_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
-const signTokens = (id) => {
-  const accessToken = jwt.sign({ id }, ACCESS_SECRET, { expiresIn: '15m' });
-  const refreshToken = jwt.sign({ id }, REFRESH_SECRET, { expiresIn: '7d' });
+/**
+ * Helper: Signs a pair of JWTs for a user session.
+ */
+const generateSessionTokens = (userId) => {
+  const accessToken = jwt.sign({ id: userId }, ACCESS_SECRET, { expiresIn: '15m' });
+  const refreshToken = jwt.sign({ id: userId }, REFRESH_SECRET, { expiresIn: '7d' });
   return { accessToken, refreshToken };
 };
 
 /**
- * 1. User Registration
- * Handles initial account creation and creates an audit trail for compliance.
+ * Helper: Attaches the refresh token to the response as a secure cookie.
  */
+const setRefreshCookie = (res, token) => {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // Match JWT expiry (7 days)
+  });
+};
+
 export const signupUser = catchAsync(async (req, res, next) => {
   const { email, password, name } = req.body;
   
   if (!email || !password || !name) {
-    return next(new AppError('All mandatory fields (Name, Email, Password) must be filled.', 400));
+    return next(new AppError('Please provide your name, email, and a secure password.', 400));
   }
 
-  // We check for duplicates early to avoid unnecessary hashing overhead.
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    auditLogger.log('SIGNUP_ATTEMPT_DUPLICATE', { email });
-    return next(new AppError('This email is already associated with an account.', 400));
+  // Prevent duplicate registrations
+  const duplicate = await UserService.findByEmail(email);
+  if (duplicate) {
+    return next(new AppError('This email is already in use. Try logging in instead.', 400));
   }
 
-  // Security: Standard bcrypt hashing with a salt factor of 10.
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
-
-  const newUser = await User.create({
-    name,
-    email,
-    password: hashedPassword,
-    role: 'user'
-  });
-
-  const { accessToken, refreshToken } = signTokens(newUser._id);
-  newUser.refreshToken = refreshToken;
+  const user = await UserService.createUser({ name, email, password });
+  const { accessToken, refreshToken } = generateSessionTokens(user.id);
   
-  // Create a verification token for future email confirmation flows.
-  newUser.createToken('verification');
-  await newUser.save({ validateBeforeSave: false });
+  await UserService.updateRefreshToken(user.id, refreshToken);
+  setRefreshCookie(res, refreshToken);
 
-  auditLogger.log('SIGNUP_SUCCESS', { userId: newUser._id, email: newUser.email });
+  auditLogger.log('SIGNUP_COMPLETE', { userId: user.id, email: user.email });
 
   res.status(201).json({
     success: true,
     data: {
       token: accessToken,
-      refreshToken,
-      user: { 
-        id: newUser._id, 
-        name: newUser.name, 
-        email: newUser.email, 
-        role: newUser.role, 
-        isVerified: false,
-        isOnboarded: false 
-      }
+      user: { id: user.id, name: user.name, email: user.email, isOnboarded: false }
     }
   });
 });
 
-/**
- * 2. User Authentication (Login)
- * Validates credentials and initializes the secure session.
- */
 export const loginUser = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return next(new AppError('Please provide both your email and password to continue.', 400));
+    return next(new AppError('Please enter both your email and password.', 400));
   }
 
-  // We explicitly select '+password' because it's hidden by default in the schema for security.
-  const user = await User.findOne({ email }).select('+password');
-  
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    auditLogger.log('LOGIN_FAILURE_INVALID_CREDENTIALS', { email });
-    return next(new AppError('The credentials provided do not match our records.', 401));
+  const user = await UserService.findByEmail(email);
+  if (!user || !(await UserService.verifyPassword(user, password))) {
+    auditLogger.log('LOGIN_FAILED', { email });
+    return next(new AppError('Invalid email or password. Please try again.', 401));
   }
 
-  const { accessToken, refreshToken } = signTokens(user._id);
-  user.refreshToken = refreshToken;
-  await user.save({ validateBeforeSave: false });
+  const { accessToken, refreshToken } = generateSessionTokens(user.id);
+  await UserService.updateRefreshToken(user.id, refreshToken);
+  setRefreshCookie(res, refreshToken);
 
-  auditLogger.log('LOGIN_SUCCESS', { userId: user._id, email: user.email });
+  auditLogger.log('LOGIN_SUCCESS', { userId: user.id });
 
   res.json({
     success: true,
     data: {
       token: accessToken,
-      refreshToken,
       user: { 
-        id: user._id, 
+        id: user.id, 
         name: user.name, 
         email: user.email, 
         role: user.role, 
-        isVerified: user.isVerified, 
-        isOnboarded: user.isOnboarded 
+        isOnboarded: user.isOnboarded,
+        businessName: user.businessName
       }
     }
   });
 });
 
 /**
- * 3. Token Lifecycle Management
- * Silent refresh to keep the user logged in without frequent credential prompts.
+ * REFRESH SESSION
+ * Exchanges the secure refresh cookie for a new access token.
+ * This happens automatically in the background on the frontend.
  */
-export const refreshAccessToken = catchAsync(async (req, res, next) => {
-  const { refreshToken } = req.body;
-
-  if (!refreshToken) {
-    return next(new AppError('Session expired. Please log in again.', 400));
+export const refreshToken = catchAsync(async (req, res, next) => {
+  const cookieToken = req.cookies.refreshToken;
+  
+  if (!cookieToken) {
+    return next(new AppError('Session expired. Please log in again.', 401));
   }
 
   try {
-    const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-    const user = await User.findById(decoded.id);
+    const decoded = jwt.verify(cookieToken, REFRESH_SECRET);
+    const user = await UserService.findById(decoded.id);
 
-    // Security: Check if the token matches the one stored in our DB (Revocation Check).
-    if (!user || user.refreshToken !== refreshToken) {
-      auditLogger.log('REFRESH_FAILURE_TOKEN_MISMATCH', { userId: decoded.id });
-      return next(new AppError('Invalid session. For your security, please log in again.', 401));
+    // Verify token matches the one in our database (security check)
+    if (!user || user.refreshToken !== cookieToken) {
+      return next(new AppError('Invalid session. Security breach suspected.', 401));
     }
 
-    const tokens = signTokens(user._id);
-    user.refreshToken = tokens.refreshToken;
-    await user.save({ validateBeforeSave: false });
+    const tokens = generateSessionTokens(user.id);
+    await UserService.updateRefreshToken(user.id, tokens.refreshToken);
+    setRefreshCookie(res, tokens.refreshToken);
 
     res.json({
       success: true,
-      data: {
-        token: tokens.accessToken,
-        refreshToken: tokens.refreshToken
-      }
+      data: { token: tokens.accessToken }
     });
   } catch (err) {
-    auditLogger.log('REFRESH_FAILURE_EXPIRED', { reason: err.message });
-    return next(new AppError('Your session has expired. Please log in.', 401));
+    return next(new AppError('Your session is no longer valid.', 401));
   }
 });
 
-/**
- * 4. Profile & Business Settings
- * Updates the user's business identity after onboarding or from settings.
- */
 export const updateProfile = catchAsync(async (req, res, next) => {
-  const user = await User.findById(req.user.id);
-  if (!user) {
-    return next(new AppError('Could not locate your user profile.', 404));
-  }
+  const userId = req.user.id;
+  const updates = req.body;
 
-  // We only update fields that were actually provided in the request.
-  const fields = ['businessName', 'businessAddress', 'businessType', 'upiId', 'bankDetails'];
-  fields.forEach(field => {
-    if (req.body[field] !== undefined) {
-      user[field] = req.body[field];
-    }
+  // Whitelist updateable fields
+  const allowed = ['businessName', 'businessAddress', 'businessType', 'upiId', 'bankDetails'];
+  const profileToUpdate = {};
+  allowed.forEach(key => {
+    if (updates[key] !== undefined) profileToUpdate[key] = updates[key];
   });
+  profileToUpdate.isOnboarded = true;
 
-  user.isOnboarded = true; // Flag as complete once profile is first saved.
-  await user.save();
+  const user = await UserService.updateProfile(userId, profileToUpdate);
   
-  auditLogger.log('PROFILE_UPDATE_SUCCESS', { userId: user._id });
+  auditLogger.log('PROFILE_MODIFIED', { userId: user.id });
 
   res.json({
     success: true,
     data: {
       user: {
-        id: user._id, 
+        id: user.id, 
         name: user.name, 
         email: user.email, 
-        role: user.role,
-        isVerified: user.isVerified, 
         isOnboarded: user.isOnboarded,
-        businessName: user.businessName, 
-        businessAddress: user.businessAddress,
-        businessType: user.businessType, 
-        upiId: user.upiId, 
-        bankDetails: user.bankDetails
+        businessName: user.businessName
       }
     }
   });
 });
 
-/**
- * 5. Secure Logout
- * Invalidates the refresh token to end the session immediately.
- */
 export const logoutUser = catchAsync(async (req, res, next) => {
-  const user = await User.findById(req.user.id);
-  if (user) {
-    user.refreshToken = undefined; // Revoke the token
-    await user.save({ validateBeforeSave: false });
-    auditLogger.log('LOGOUT_SUCCESS', { userId: user._id });
+  const userId = req.user.id;
+  if (userId) {
+    await UserService.updateRefreshToken(userId, null);
   }
 
-  res.json({ success: true, message: 'Session closed successfully.' });
+  // Purge the refresh cookie
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax'
+  });
+
+  res.json({ success: true, message: 'Signed out successfully.' });
 });
 
-/**
- * 6. Password Recovery (Forgot Password)
- * Generates a secure, temporary reset token and creates an audit trail.
- * Note: In a full production app, this would trigger an email via a mail service.
- */
 export const forgotPassword = catchAsync(async (req, res, next) => {
-  const user = await User.findOne({ email: req.body.email });
+  const user = await UserService.findByEmail(req.body.email);
   if (!user) {
-    // Security Best Practice: We don't reveal if a user exists or not.
-    // However, for this MVP, we provide a clear error for easier debugging.
-    return next(new AppError('No account found with that email address.', 404));
+    return next(new AppError('No account exists with that email address.', 404));
   }
 
-  // createToken is a helper on the User model that generates a hashed token.
-  const resetToken = user.createToken('passwordReset');
-  await user.save({ validateBeforeSave: false });
+  const token = await UserService.generateSecureToken(user.id, 'passwordReset');
 
-  auditLogger.log('PASSWORD_RESET_REQUESTED', { userId: user._id, email: user.email });
+  auditLogger.log('RESET_LINK_GENERATED', { userId: user.id });
 
-  // For this version, we return the token in the response for demo/testing.
   res.json({ 
     success: true, 
-    message: 'Reset instructions have been generated.',
-    demoToken: resetToken // REMOVE THIS in a real production environment
+    message: 'Check your email for the reset link.',
+    demoToken: token 
   });
 });
 
-/**
- * 7. Password Reset
- * Validates the hashed token and updates the user's password securely.
- */
 export const resetPassword = catchAsync(async (req, res, next) => {
-  // Hash the provided token to match the one stored in our DB.
   const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-
-  const user = await User.findOne({
-    passwordResetToken: hashedToken,
-    passwordResetExpires: { $gt: Date.now() } // Ensure token hasn't expired (1 hour).
-  });
+  const user = await UserService.findByResetToken(hashedToken);
 
   if (!user) {
-    auditLogger.log('PASSWORD_RESET_FAILURE', { reason: 'INVALID_OR_EXPIRED_TOKEN' });
-    return next(new AppError('The reset link is invalid or has expired. Please request a new one.', 400));
+    return next(new AppError('This link is invalid or has expired.', 400));
   }
 
-  // Update password and clear the reset fields.
   const salt = await bcrypt.genSalt(10);
-  user.password = await bcrypt.hash(req.body.password, salt);
-  user.passwordResetToken = undefined;
-  user.passwordResetExpires = undefined;
-  
-  await user.save();
+  const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-  auditLogger.log('PASSWORD_RESET_SUCCESS', { userId: user._id });
+  await UserService.updateProfile(user.id, {
+    password: hashedPassword,
+    passwordResetToken: null,
+    passwordResetExpires: null
+  });
 
-  res.json({ success: true, message: 'Your password has been updated successfully.' });
+  auditLogger.log('PASSWORD_CHANGED', { userId: user.id });
+
+  res.json({ success: true, message: 'Password updated. You can now log in.' });
 });
 
-/**
- * 8. Email Verification
- * Confirms the user's email address using a secure verification token.
- */
 export const verifyEmail = catchAsync(async (req, res, next) => {
   const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
-
-  const user = await User.findOne({
-    verificationToken: hashedToken,
-    verificationExpires: { $gt: Date.now() }
-  });
+  const user = await UserService.findByVerificationToken(hashedToken);
 
   if (!user) {
-    return next(new AppError('Verification link is invalid or has expired.', 400));
+    return next(new AppError('Verification link is dead or expired.', 400));
   }
 
-  user.isVerified = true;
-  user.verificationToken = undefined;
-  user.verificationExpires = undefined;
-  await user.save({ validateBeforeSave: false });
+  await UserService.updateProfile(user.id, {
+    isVerified: true,
+    verificationToken: null,
+    verificationExpires: null
+  });
 
-  auditLogger.log('EMAIL_VERIFIED', { userId: user._id });
+  auditLogger.log('ACCOUNT_VERIFIED', { userId: user.id });
 
-  res.json({ success: true, message: 'Email confirmed! Your account is now fully active.' });
+  res.json({ success: true, message: 'Email verified. Welcome to VyapaarFlow!' });
 });
 
-/**
- * 9. Demo Data Seeding
- * Populates the user's account with realistic data for demonstration purposes.
- */
 import { seedUserData } from '../utils/seeder.js';
 export const seedUser = catchAsync(async (req, res, next) => {
-  const stats = await seedUserData(req.user.id);
-  
-  auditLogger.log('DATA_SEED_SUCCESS', { userId: req.user.id, stats });
-
+  const results = await seedUserData(req.user.id);
   res.json({
     success: true,
-    message: 'Demo environment initialized successfully.',
-    data: stats
+    message: 'Demo environment ready.',
+    data: results
   });
 });

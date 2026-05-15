@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { generateAiItems } from '../api';
+import { aiParseLineItems } from '../api';
 
 /**
  * Custom React Hook: useAiGenerator
@@ -29,7 +29,7 @@ export const useAiGenerator = (setInvoiceDetails, addToast) => {
     setIsProcessing(true);
     
     try {
-      const responsePayload = await generateAiItems(promptInteraction);
+      const responsePayload = await aiParseLineItems(promptInteraction);
       
       // Merge the AI's intelligent suggestions into the master invoice record
       setInvoiceDetails(prev => ({

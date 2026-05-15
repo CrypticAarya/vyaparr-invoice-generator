@@ -1,52 +1,31 @@
-import mongoose from 'mongoose';
-import Invoice from '../models/Invoice.js';
-import Client from '../models/Client.js';
-import Product from '../models/Product.js';
+import InvoiceService from '../services/InvoiceService.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
-import InventoryService from '../services/InventoryService.js';
 
 /**
- * Controller to persist a newly created invoice draft or finalized document.
+ * INVOICE CONTROLLER
+ * Handles HTTP requests related to the financial document lifecycle.
  */
+
 export const createInvoice = catchAsync(async (req, res, next) => {
-  const payload = { ...req.body };
+  const draft = req.body;
   
-  // Validation
-  if (!payload.clientId) return next(new AppError('Client selection is mandatory.', 400));
-  if (!payload.items || payload.items.length === 0) return next(new AppError('Invoice must contain at least one item.', 400));
-  if (isNaN(payload.total) || payload.total < 0) return next(new AppError('Invalid total amount.', 400));
+  if (!draft.clientId) return next(new AppError('Please select a client to proceed.', 400));
+  if (!draft.items?.length) return next(new AppError('An invoice cannot be empty. Please add items.', 400));
 
-  // 1. Validate Stock Availability before creating
-  await InventoryService.validateStock(payload.items);
+  // Normalize status for the database (Prisma Enums are uppercase)
+  if (draft.status) draft.status = draft.status.toUpperCase();
 
-  // Explicitly cast relationships to ObjectId to ensure DB persistence
-  if (payload.clientId) payload.clientId = new mongoose.Types.ObjectId(payload.clientId);
-  if (payload.items) {
-    payload.items = payload.items.map(item => ({
-      ...item,
-      productId: item.productId ? new mongoose.Types.ObjectId(item.productId) : undefined
-    }));
-  }
-
-  const newInvoice = new Invoice({
-    ...payload,
-    userId: req.user.id
-  });
-  
-  await newInvoice.save();
-
-  // 2. Adjust Inventory Stock
-  await InventoryService.adjustStock(payload.items, 'outbound', req.user.id, newInvoice._id);
+  const invoice = await InvoiceService.createInvoice(req.user.id, draft);
   
   res.status(201).json({ 
     success: true, 
-    data: { invoice: newInvoice } 
+    data: { invoice } 
   });
 });
 
 export const getInvoices = catchAsync(async (req, res, next) => {
-  const invoices = await Invoice.find({ userId: req.user.id }).sort({ createdAt: -1 });
+  const invoices = await InvoiceService.getInvoices(req.user.id);
   res.json({ 
     success: true, 
     data: { invoices } 
@@ -54,96 +33,22 @@ export const getInvoices = catchAsync(async (req, res, next) => {
 });
 
 export const updateInvoice = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const payload = { ...req.body };
-  
-  const existingInvoice = await Invoice.findOne({ _id: id, userId: req.user.id });
-  if (!existingInvoice) return next(new AppError('Invoice not found', 404));
+  const { id: invoiceId } = req.params;
+  const updates = req.body;
 
-  // Handle Inventory Delta for items if updated
-  if (payload.items) {
-    // Restore old stock first
-    await InventoryService.restoreFromInvoice(existingInvoice, req.user.id);
-    // Validate new stock
-    await InventoryService.validateStock(payload.items);
-    // Apply new reduction
-    await InventoryService.adjustStock(payload.items, 'outbound', req.user.id, existingInvoice._id);
-  }
+  if (updates.status) updates.status = updates.status.toUpperCase();
 
-  // Delta update for Client Balance if total changed on a non-draft invoice
-  if (existingInvoice.status !== 'draft' && payload.total !== undefined) {
-    const oldOutstanding = (existingInvoice.total || 0) - (existingInvoice.paidAmount || 0);
-    const newOutstanding = (Number(payload.total) || 0) - (existingInvoice.paidAmount || 0);
-    const delta = newOutstanding - oldOutstanding;
-
-    if (delta !== 0 && existingInvoice.clientId) {
-      await Client.findByIdAndUpdate(existingInvoice.clientId, {
-        $inc: { pendingAmount: delta }
-      });
-    }
-  }
-
-  // Explicitly cast relationships for updates
-  if (payload.clientId) payload.clientId = new mongoose.Types.ObjectId(payload.clientId);
-  if (payload.items) {
-    payload.items = payload.items.map(item => ({
-      ...item,
-      productId: item.productId ? new mongoose.Types.ObjectId(item.productId) : undefined
-    }));
-  }
-
-  const updatedInvoice = await Invoice.findOneAndUpdate(
-    { _id: id, userId: req.user.id },
-    { $set: payload },
-    { new: true }
-  );
+  const invoice = await InvoiceService.updateInvoice(invoiceId, req.user.id, updates);
   
   res.json({ 
     success: true, 
-    data: { invoice: updatedInvoice } 
+    data: { invoice } 
   });
 });
 
-/**
- * Finalize: Syncs with Client (AR) and Product (Usage)
- */
 export const finalizeInvoice = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const invoice = await Invoice.findOne({ _id: id, userId: req.user.id });
-
-  if (!invoice) return next(new AppError('Invoice not found', 404));
-  
-  if (invoice.status !== 'draft') {
-    return res.json({ 
-      success: true, 
-      data: { invoice }, 
-      message: 'Invoice already finalized' 
-    });
-  }
-
-  invoice.status = 'final';
-  await invoice.save();
-
-  // 1. Update Client Pending Balance
-  if (invoice.clientId) {
-    const outstanding = (invoice.total || 0) - (invoice.paidAmount || 0);
-    await Client.findByIdAndUpdate(invoice.clientId, {
-      $inc: { pendingAmount: outstanding }
-    });
-  }
-
-  // 2. Update Product Usage Statistics (Stock is already adjusted on creation/update)
-  if (invoice.items && invoice.items.length > 0) {
-    const productUpdates = invoice.items
-      .filter(item => item.productId)
-      .map(item => Product.findByIdAndUpdate(item.productId, {
-        $inc: { 
-          usageCount: 1, 
-          totalRevenueGenerated: (item.qty * item.rate) || 0 
-        }
-      }));
-    await Promise.all(productUpdates);
-  }
+  const { id: invoiceId } = req.params;
+  const invoice = await InvoiceService.finalizeInvoice(invoiceId, req.user.id);
 
   res.json({ 
     success: true, 
@@ -151,32 +56,11 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
   });
 });
 
-/**
- * Update Payment: Handles full/partial payments and syncs with Client AR.
- */
 export const updatePayment = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const { amount, notes, status } = req.body;
-  const invoice = await Invoice.findOne({ _id: id, userId: req.user.id });
+  const { id: invoiceId } = req.params;
+  const paymentData = req.body;
 
-  if (!invoice) return next(new AppError('Invoice not found', 404));
-  
-  const previousPaidAmount = invoice.paidAmount || 0;
-  const newPaidAmount = Number(amount) || 0;
-  const diff = newPaidAmount - previousPaidAmount;
-
-  invoice.paidAmount = newPaidAmount;
-  invoice.paymentNotes = notes || invoice.paymentNotes;
-  invoice.status = status || (newPaidAmount >= invoice.total ? 'paid' : 'partial');
-  invoice.isPaid = invoice.status === 'paid';
-  
-  await invoice.save();
-
-  if (invoice.clientId && diff !== 0) {
-    await Client.findByIdAndUpdate(invoice.clientId, {
-      $inc: { pendingAmount: -diff }
-    });
-  }
+  const invoice = await InvoiceService.recordPayment(invoiceId, req.user.id, paymentData);
 
   res.json({ 
     success: true, 
@@ -185,58 +69,22 @@ export const updatePayment = catchAsync(async (req, res, next) => {
 });
 
 export const logCommunication = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const { action, notes } = req.body;
-  const invoice = await Invoice.findOne({ _id: id, userId: req.user.id });
-
-  if (!invoice) return next(new AppError('Invoice not found', 404));
-
-  invoice.communicationLog.push({ action, notes, date: new Date() });
-  await invoice.save();
+  const { id: invoiceId } = req.params;
+  const log = await InvoiceService.logCommunication(invoiceId, req.user.id, req.body);
 
   res.json({ 
     success: true, 
-    data: { log: invoice.communicationLog } 
+    data: { log } 
   });
 });
 
-/**
- * Delete: Reverses sync impact including Inventory restoration
- */
 export const deleteInvoice = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const invoice = await Invoice.findOne({ _id: id, userId: req.user.id });
-
-  if (!invoice) return next(new AppError('Invoice not found', 404));
-
-  // 1. Restore Inventory Stock
-  await InventoryService.restoreFromInvoice(invoice, req.user.id);
-
-  // 2. Reverse AR impact
-  if (['final', 'partial', 'overdue'].includes(invoice.status) && invoice.clientId) {
-    const outstanding = (invoice.total || 0) - (invoice.paidAmount || 0);
-    if (outstanding > 0) {
-      await Client.findByIdAndUpdate(invoice.clientId, {
-        $inc: { pendingAmount: -outstanding }
-      });
-    }
-  }
-
-  // 3. Reverse Product Revenue impact
-  if (invoice.items && invoice.items.length > 0) {
-    const productReversals = invoice.items
-      .filter(item => item.productId)
-      .map(item => Product.findByIdAndUpdate(item.productId, {
-        $inc: { 
-          totalRevenueGenerated: -((item.qty * item.rate) || 0) 
-        }
-      }));
-    await Promise.all(productReversals);
-  }
-
-  await Invoice.deleteOne({ _id: id });
+  const { id: invoiceId } = req.params;
+  
+  await InvoiceService.removeInvoice(invoiceId, req.user.id);
+  
   res.json({ 
     success: true, 
-    data: { message: 'Invoice deleted and stock/balances synchronized.' } 
+    data: { message: 'Invoice and associated records purged successfully.' } 
   });
 });
