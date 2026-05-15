@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { updateProfile, seedUser } from '../api';
+import { updateBusinessProfile, seedUser } from '../api';
 
 export default function Settings() {
   const { user, login, logout } = useAuth();
@@ -24,7 +24,7 @@ export default function Settings() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const updatedUser = await updateProfile(formData);
+      const updatedUser = await updateBusinessProfile(formData);
       login(updatedUser, localStorage.getItem('vyaparflow_token'));
       addToast('Profile updated successfully', 'success');
     } catch (err) {

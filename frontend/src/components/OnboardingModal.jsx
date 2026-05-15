@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import InputGroup from './InputGroup';
-import { updateProfile } from '../api';
+import { updateBusinessProfile } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -30,7 +30,7 @@ const OnboardingModal = ({ onComplete }) => {
 
     setLoading(true);
     try {
-      const updatedUser = await updateProfile(formData);
+      const updatedUser = await updateBusinessProfile(formData);
       // login(userData, token) - we reuse the current token
       const currentToken = localStorage.getItem('vyaparflow_token');
       login({ ...user, ...updatedUser }, currentToken);

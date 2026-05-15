@@ -98,7 +98,7 @@ export const submitNewPassword = (token, password) => apiClient.post(`/auth/rese
 
 // --- Financial Documents (Invoices) ---
 export const fetchInvoices = () => apiClient.get('/invoices').then(res => res.data.invoices);
-export const saveInvoiceRecordRecord = (invoice) => invoice.id ? apiClient.put(`/invoices/${invoice.id}`, invoice) : apiClient.post('/invoices', invoice);
+export const saveInvoiceRecord = (invoice) => invoice.id ? apiClient.put(`/invoices/${invoice.id}`, invoice) : apiClient.post('/invoices', invoice);
 export const removeInvoiceRecord = (id) => apiClient.delete(`/invoices/${id}`);
 export const lockInvoice = (id) => apiClient.post(`/invoices/finalize/${id}`);
 export const recordInvoicePayment = (id, info) => apiClient.put(`/invoices/payment/${id}`, info);

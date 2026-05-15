@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { updateProfile } from '../api';
+import { updateBusinessProfile } from '../api';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 
@@ -37,7 +37,7 @@ const Onboarding = () => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const updatedUser = await updateProfile({ ...formData, isOnboarded: true });
+      const updatedUser = await updateBusinessProfile({ ...formData, isOnboarded: true });
       const token = localStorage.getItem('vyaparflow_token');
       login(updatedUser, token);
       addToast('Profile setup complete', 'success');
