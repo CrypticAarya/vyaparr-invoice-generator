@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import html2pdf from 'html2pdf.js';
@@ -12,9 +12,9 @@ import { useAiGenerator } from '../hooks/useAiGenerator';
 
 // View Components
 import HistorySidebar from '../components/HistorySidebar';
-import InvoiceForm from '../components/InvoiceForm';
-import InvoicePreview from '../components/InvoicePreview';
-import CollectionModal from '../components/CollectionModal';
+const InvoiceForm = lazy(() => import('../components/InvoiceForm'));
+const InvoicePreview = lazy(() => import('../components/InvoicePreview'));
+const CollectionModal = lazy(() => import('../components/CollectionModal'));
 
 function Dashboard() {
   const { user } = useAuth();
@@ -159,10 +159,10 @@ function Dashboard() {
       </AnimatePresence>
 
       {/* Header Toolbar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-[#121217] p-6 rounded-2xl border border-[#1E1E24] shadow-lg shadow-black/20">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 premium-card p-8">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Invoice Editor</h1>
-          <p className="text-[13px] font-medium text-zinc-500 mt-1">Draft your professional GST invoice</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Invoice Editor</h1>
+          <p className="text-[13px] font-medium text-slate-500 mt-1">Draft your professional GST invoice</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
@@ -172,19 +172,19 @@ function Dashboard() {
               Saved
             </span>
           )}
-          <button onClick={() => setShowHistory(true)} className="btn btn-secondary px-4 py-2">
+          <Button variant="secondary" size="sm" onClick={() => setShowHistory(true)}>
             History
-          </button>
-          <button onClick={handleSaveDraft} disabled={isSaving} className="btn btn-secondary px-4 py-2">
-            {isSaving ? 'Saving...' : 'Save Draft'}
-          </button>
-          <button onClick={handleExportPDF} disabled={isExporting} className="btn btn-secondary px-4 py-2">
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleSaveDraft} isLoading={isSaving}>
+            Save Draft
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleExportPDF} isLoading={isExporting}>
             Export PDF
-          </button>
+          </Button>
           {invoiceDetails.status !== 'final' && (
-            <button onClick={handleFinalize} disabled={isFinalizing} className="btn btn-primary px-5 py-2">
+            <Button variant="primary" size="sm" onClick={handleFinalize} isLoading={isFinalizing}>
               Finalize & Issue
-            </button>
+            </Button>
           )}
         </div>
       </div>

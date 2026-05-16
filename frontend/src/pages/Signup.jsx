@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { signup } from '../api';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
 
 const Signup = () => {
   const [loading, setLoading] = useState(false);
@@ -50,44 +52,35 @@ const Signup = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Full Name</label>
-            <input
-              name="name"
-              type="text"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Steve Jobs"
-              className="w-full bg-white border border-black/5 rounded-2xl px-5 py-3.5 text-[14px] outline-none transition-all focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 placeholder:text-zinc-400 shadow-sm"
-            />
-          </div>
+          <Input
+            label="Full Name"
+            name="name"
+            type="text"
+            required
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Steve Jobs"
+          />
 
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Work Email</label>
-            <input
-              name="email"
-              type="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="you@company.com"
-              className="w-full bg-white border border-black/5 rounded-2xl px-5 py-3.5 text-[14px] outline-none transition-all focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 placeholder:text-zinc-400 shadow-sm"
-            />
-          </div>
+          <Input
+            label="Work Email"
+            name="email"
+            type="email"
+            required
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="you@company.com"
+          />
 
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Password</label>
-            <input
-              name="password"
-              type="password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              className="w-full bg-white border border-black/5 rounded-2xl px-5 py-3.5 text-[14px] outline-none transition-all focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 placeholder:text-zinc-400 shadow-sm"
-            />
-          </div>
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            required
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="••••••••"
+          />
 
           {error && (
             <div className="text-rose-600 text-[13px] font-bold bg-rose-50 p-4 rounded-2xl border border-rose-100 flex items-center gap-3">
@@ -96,13 +89,13 @@ const Signup = () => {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full btn-premium btn-premium-primary py-4 mt-2 text-[15px]"
+            isLoading={loading}
+            className="w-full py-4 mt-2 text-[15px]"
           >
-            {loading ? 'Creating account...' : 'Create free account'}
-          </button>
+            Create free account
+          </Button>
         </form>
 
         <p className="mt-10 text-center text-[14px] font-medium text-zinc-500">

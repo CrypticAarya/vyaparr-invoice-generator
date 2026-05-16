@@ -29,8 +29,10 @@ model User {
   email                 String    @unique
   name                  String
   password              String
+  phone                 String?
   role                  Role      @default(USER)
   isVerified            Boolean   @default(false)
+  isGoogleUser          Boolean   @default(false)
   refreshToken          String?
   
   // Security Tokens
@@ -44,6 +46,7 @@ model User {
   businessName          String?
   businessAddress       String?
   businessType          String?
+  businessLogo          String?
   bankDetails           String?
   upiId                 String?
   currency              String    @default("USD")
@@ -54,6 +57,8 @@ model User {
   products              Product[]
   invoices              Invoice[]
   stockTransactions     StockTransaction[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
   
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -134,6 +139,7 @@ model Invoice {
   
   status          InvoiceStatus @default(DRAFT)
   paidAmount      Float         @default(0)
+  paymentMethod   String?       // "UPI", "BANK_TRANSFER", "CASH", etc.
   paymentNotes    String?
   notes           String?
 
@@ -196,5 +202,38 @@ model StockTransaction {
   createdAt   DateTime  @default(now())
 
   @@index([productId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, WARNING, SUCCESS, ERROR
+  isRead    Boolean  @default(false)
+  link      String?
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  action      String   // e.g., "CREATE_INVOICE", "LOGIN", "DELETE_PRODUCT"
+  entity      String?  // e.g., "INVOICE", "PRODUCT"
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+
   @@index([userId])
 }

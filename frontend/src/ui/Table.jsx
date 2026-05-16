@@ -3,17 +3,17 @@ import React from 'react';
 const Table = ({ headers, children, className = '' }) => {
   return (
     <div className={`w-full overflow-x-auto ${className}`}>
-      <table className="w-full text-left border-collapse">
+      <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
-          <tr className="border-b border-[#1E1E24]">
+          <tr className="bg-slate-50/50 border-b border-slate-100">
             {headers.map((header, idx) => (
-              <th key={idx} className="px-6 py-4 text-[11px] font-bold text-zinc-500 uppercase tracking-widest bg-zinc-800/30">
+              <th key={idx} className="px-6 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-800/50">
+        <tbody className="divide-y divide-slate-50">
           {children}
         </tbody>
       </table>
@@ -22,13 +22,13 @@ const Table = ({ headers, children, className = '' }) => {
 };
 
 export const TableRow = ({ children, className = '' }) => (
-  <tr className={`hover:bg-zinc-800/30 transition-colors group ${className}`}>
+  <tr className={`hover:bg-v-accent/[0.01] transition-all group ${className}`}>
     {children}
   </tr>
 );
 
 export const TableCell = ({ children, className = '' }) => (
-  <td className={`px-6 py-4 text-[13px] font-semibold text-zinc-300 ${className}`}>
+  <td className={`px-6 py-5 text-[13px] font-medium text-slate-600 ${className}`}>
     {children}
   </td>
 );

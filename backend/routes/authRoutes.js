@@ -8,6 +8,7 @@ import {
   forgotPassword, 
   resetPassword, 
   verifyEmail,
+  getProfile,
   seedUser 
 } from '../controllers/authController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
@@ -30,8 +31,11 @@ router.post('/reset-password/:token', resetPassword);
 router.get('/verify-email/:token', verifyEmail);
 
 // --- Secure Operations ---
-router.post('/logout', authenticateToken, logoutUser);
-router.put('/profile', authenticateToken, validate(updateProfileSchema), updateProfile);
-router.post('/seed', authenticateToken, seedUser);
+router.use(authenticateToken);
+
+router.get('/profile', getProfile);
+router.post('/logout', logoutUser);
+router.put('/profile', validate(updateProfileSchema), updateProfile);
+router.post('/seed', seedUser);
 
 export default router;

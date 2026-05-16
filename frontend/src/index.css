@@ -89,6 +89,26 @@
     @apply bg-white border border-black/5 hover:bg-zinc-50 shadow-sm;
     color: var(--v-text);
   }
+
+  .input-field {
+    @apply w-full bg-white border border-black/5 rounded-2xl px-5 py-3 text-[14px] outline-none transition-all focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 placeholder:text-zinc-400 shadow-sm;
+  }
+
+  .data-card {
+    @apply bg-white border border-black/5 rounded-[28px] p-8 shadow-sm transition-all;
+  }
+
+  .stat-card {
+    @apply bg-white border border-black/5 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all;
+  }
+
+  .stat-label {
+    @apply text-[11px] font-bold text-slate-400 uppercase tracking-widest;
+  }
+
+  .stat-value {
+    @apply text-2xl font-black text-slate-900 mt-1 tracking-tight;
+  }
 }
 
 @layer utilities {

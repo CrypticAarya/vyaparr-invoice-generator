@@ -20,7 +20,6 @@ const Landing = () => {
           <div className="hidden md:flex items-center gap-10 text-[13px] font-bold text-zinc-500">
             <a href="#features" className="hover:text-v-accent transition-colors">Features</a>
             <a href="#compliance" className="hover:text-v-accent transition-colors">Compliance</a>
-            <a href="#pricing" className="hover:text-v-accent transition-colors">Pricing</a>
           </div>
 
           <div className="flex items-center gap-6">
@@ -54,7 +53,7 @@ const Landing = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link to="/signup" className="w-full sm:w-auto px-10 py-4 bg-v-accent hover:scale-105 text-white text-base font-bold rounded-2xl transition-all shadow-xl shadow-v-accent/20 flex items-center justify-center gap-3">
-                Start Free Trial
+                Get Started For Free
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </Link>
               <a href="#features" className="w-full sm:w-auto px-10 py-4 bg-white/60 hover:bg-white border border-black/[0.05] text-v-text text-base font-bold rounded-2xl transition-all flex items-center justify-center">
@@ -188,59 +187,29 @@ const Landing = () => {
       </section>
 
       {/* Premium Pricing Cards */}
-      <section id="pricing" className="py-32 px-6 bg-v-lavender/20 border-t border-black/[0.02]">
-        <div className="max-w-5xl mx-auto text-center space-y-6">
-          <h2 className="text-4xl md:text-6xl font-black kalam">Simple Pricing. Pure Value.</h2>
-          <p className="text-zinc-500 font-medium text-lg">Scale your business with zero friction.</p>
+      <section className="py-32 px-6 bg-v-lavender/20 border-t border-black/[0.02]">
+        <div className="max-w-4xl mx-auto text-center space-y-10">
+          <h2 className="text-4xl md:text-6xl font-black kalam">Powerful. Professional. <br /><span className="text-v-accent">Always Free.</span></h2>
+          <p className="text-zinc-500 font-medium text-lg max-w-2xl mx-auto italic">
+            VyapaarFlow was built to empower modern entrepreneurs. We believe professional billing tools should be accessible to everyone, regardless of their scale.
+          </p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-20 max-w-4xl mx-auto text-left">
-            <div className="premium-card p-12 bg-white border-black/[0.03] flex flex-col h-full">
-              <h3 className="text-xl font-black mb-2 uppercase tracking-widest text-zinc-400">Starter</h3>
-              <div className="flex items-baseline gap-2 mb-10">
-                <span className="text-6xl font-black text-v-text">₹0</span>
-                <span className="text-zinc-400 font-bold">/ month</span>
-              </div>
-              <ul className="space-y-5 mb-12 text-zinc-600 font-bold text-sm flex-grow">
-                <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-v-accent" /> Up to 10 invoices
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-v-accent" /> Basic CRM & Inventory
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-v-accent" /> Standard PDF Exports
-                </li>
-              </ul>
-              <Link to="/signup" className="w-full py-5 text-center border-2 border-black/5 rounded-2xl font-bold text-v-text hover:bg-black/5 transition-all">
-                Get Started
-              </Link>
+          <div className="premium-card p-12 bg-white border-black/[0.03] text-left relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
+              <svg className="w-64 h-64 text-v-text" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
             </div>
-            
-            <div className="premium-card p-12 bg-v-accent text-white shadow-2xl shadow-v-accent/30 relative overflow-hidden flex flex-col h-full">
-              <div className="absolute top-0 right-0 p-6">
-                <span className="bg-white/20 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest border border-white/20 backdrop-blur-md">Recommended</span>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-10">
+              <div className="space-y-6">
+                <h3 className="text-3xl font-black text-v-text">Lifetime Free Access</h3>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-zinc-600 font-bold text-sm">
+                  <li className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-v-accent" /> Unlimited Invoices</li>
+                  <li className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-v-accent" /> Unlimited Clients</li>
+                  <li className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-v-accent" /> Full AI CFO Access</li>
+                  <li className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-v-accent" /> Inventory Automation</li>
+                </ul>
               </div>
-              <h3 className="text-xl font-black mb-2 uppercase tracking-widest text-white/50">Professional</h3>
-              <div className="flex items-baseline gap-2 mb-10">
-                <span className="text-6xl font-black">₹499</span>
-                <span className="text-white/50 font-bold">/ month</span>
-              </div>
-              <ul className="space-y-5 mb-12 text-white/80 font-bold text-sm flex-grow">
-                <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-white" /> Unlimited Invoices
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-white" /> Advanced AI CFO Panel
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-white" /> Multi-user Support
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-white" /> Priority API Access
-                </li>
-              </ul>
-              <Link to="/signup" className="w-full py-5 text-center bg-white text-v-accent rounded-2xl font-bold hover:scale-105 transition-all shadow-xl">
-                Start Pro Trial
+              <Link to="/signup" className="btn-premium btn-premium-primary px-12 py-5 text-lg shadow-2xl shadow-v-accent/30">
+                Join the Community
               </Link>
             </div>
           </div>
@@ -256,8 +225,8 @@ const Landing = () => {
             </div>
             <span className="text-lg font-bold tracking-tight text-v-text kalam">VyapaarFlow</span>
           </div>
-          <div className="text-zinc-400 text-[13px] font-bold">
-            © 2026 VYAPAARFLOW • PRIVATE BETA
+          <div className="text-zinc-400 text-[13px] font-bold uppercase tracking-widest">
+            © 2026 VYAPAARFLOW • Community Edition
           </div>
           <div className="flex items-center gap-10 text-[13px] font-bold text-zinc-400">
             <a href="#" className="hover:text-v-accent transition-colors">Privacy Policy</a>

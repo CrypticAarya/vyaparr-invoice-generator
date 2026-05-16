@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import Button from '../ui/Button';
 
 const AiCfoPanel = ({ name = "Founder", insights, isLoading }) => {
   return (
@@ -61,9 +62,9 @@ const AiCfoPanel = ({ name = "Founder", insights, isLoading }) => {
               )}
             </div>
 
-            <button className="w-full btn-premium btn-premium-primary">
+            <Button className="w-full">
               Run Cashflow Analysis
-            </button>
+            </Button>
           </div>
         </div>
       </div>

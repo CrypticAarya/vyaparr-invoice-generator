@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { motion } from 'framer-motion';
@@ -31,6 +31,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const settingsItems = [
     { name: 'Preferences', path: '/settings', icon: SettingsIcon },
+    { name: 'Security Logs', path: '/audit', icon: (props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
   ];
 
   return (
@@ -39,12 +40,12 @@ const Sidebar = ({ isOpen, onClose }) => {
       animate={{ x: 0 }}
       className={`fixed inset-y-0 left-0 z-50 w-64 bg-v-bg border-r border-black/5 flex flex-col transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
-      <div className="px-8 py-10 flex items-center gap-3">
-        <div className="w-10 h-10 bg-v-accent rounded-2xl flex items-center justify-center shadow-lg shadow-v-accent/20">
+      <Link to="/home" className="px-8 py-10 flex items-center gap-3 group">
+        <div className="w-10 h-10 bg-v-accent rounded-2xl flex items-center justify-center shadow-lg shadow-v-accent/20 group-hover:scale-105 transition-transform">
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
         </div>
         <span className="sketch-title text-xl font-bold tracking-tight">VyapaarFlow</span>
-      </div>
+      </Link>
 
       <div className="px-4 mb-8">
         <p className="px-4 text-[11px] font-bold text-zinc-400 uppercase tracking-[0.15em] mb-4">Operating System</p>
@@ -89,8 +90,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             {user?.name?.charAt(0) || 'U'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-bold text-v-text truncate">{user?.name || 'Sarthak'}</p>
-            <p className="text-[11px] font-medium text-zinc-500 truncate">Founder Plan</p>
+            <p className="text-[14px] font-bold text-v-text truncate">{user?.name || 'User'}</p>
+            <p className="text-[11px] font-medium text-zinc-400 truncate">{user?.businessName || user?.email || 'VyapaarFlow'}</p>
           </div>
           <button 
             onClick={handleLogout}

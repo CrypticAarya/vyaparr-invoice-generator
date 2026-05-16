@@ -58,3 +58,5 @@ export const ensureVerified = (req, res, next) => {
   }
   next();
 };
+
+export const protect = authenticateToken;

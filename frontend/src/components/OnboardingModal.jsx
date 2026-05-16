@@ -1,134 +1,156 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import InputGroup from './InputGroup';
+import { motion, AnimatePresence } from 'framer-motion';
 import { updateBusinessProfile } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
 
-const OnboardingModal = ({ onComplete }) => {
-  const { user, login } = useAuth(); // Using login to update the global user state
+export default function OnboardingModal({ isOpen }) {
+  const { user, login } = useAuth();
   const { addToast } = useToast();
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     businessName: '',
-    businessType: 'freelancer',
-    businessAddress: '',
-    upiId: '',
-    bankDetails: ''
+    businessType: 'Freelancer',
+    currency: 'USD',
+    taxRate: 0
   });
 
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const handleNext = () => setStep(s => s + 1);
+  const handleBack = () => setStep(s => s - 1);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.businessName.trim()) {
-      addToast("Business Name is required", "error");
-      return;
-    }
-
+  const handleSubmit = async () => {
     setLoading(true);
     try {
-      const updatedUser = await updateBusinessProfile(formData);
-      // login(userData, token) - we reuse the current token
-      const currentToken = localStorage.getItem('vyaparflow_token');
-      login({ ...user, ...updatedUser }, currentToken);
-      onComplete(updatedUser);
-      addToast("Profile completed successfully!");
-    } catch (error) {
-      addToast("Failed to save profile: " + error.message, "error");
+      const updatedUser = await updateBusinessProfile({ ...formData, isOnboarded: true });
+      login(updatedUser, localStorage.getItem('vyaparflow_token'));
+      addToast('Welcome to VyapaarFlow! Your workspace is ready.', 'success');
+    } catch (err) {
+      addToast('Onboarding failed. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 min-h-screen bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="bg-white rounded-[2rem] shadow-[0_20px_80px_rgb(0,0,0,0.15)] max-w-lg w-full overflow-hidden border border-slate-100"
-      >
-        <div className="h-2 w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600"></div>
-        <div className="p-8 sm:p-10">
-          <div className="w-12 h-12 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="w-full max-w-xl bg-white rounded-[40px] shadow-2xl overflow-hidden"
+        >
+          <div className="h-2 bg-slate-100">
+            <motion.div 
+              className="h-full bg-v-accent"
+              animate={{ width: `${(step / 3) * 100}%` }}
+            />
           </div>
-          <h2 className="text-[28px] font-extrabold text-slate-900 mb-2 tracking-tight">Setup your business profile</h2>
-          <p className="text-slate-500 font-medium mb-8 text-[15px]">We'll auto-fill these details and personalize your dashboard based on your business.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="p-12">
+            {step === 1 && (
+              <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+                <h2 className="sketch-title text-3xl mb-2">Identify Your Business</h2>
+                <p className="text-sm font-medium text-slate-500 mb-8">Let's start with the basics of your professional identity.</p>
+                <div className="space-y-6">
+                  <Input 
+                    label="Business Name"
+                    placeholder="e.g. Creative Studio" 
+                    value={formData.businessName}
+                    onChange={e => setFormData({...formData, businessName: e.target.value})}
+                  />
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Industry / Type</label>
+                    <select 
+                      className="input-field appearance-none cursor-pointer h-[50px]"
+                      value={formData.businessType}
+                      onChange={e => setFormData({...formData, businessType: e.target.value})}
+                    >
+                      <option>Freelancer</option>
+                      <option>Agency</option>
+                      <option>E-commerce</option>
+                      <option>Consultancy</option>
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
-            <div>
-              <label className="block text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">Business Category</label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { id: 'freelancer', label: 'Freelancer', icon: '👤' },
-                  { id: 'agency', label: 'Agency', icon: '🏢' },
-                  { id: 'fitness', label: 'Gym/Fitness', icon: '💪' }
-                ].map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => handleChange('businessType', type.id)}
-                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.businessType === type.id
-                        ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
-                        : 'border-slate-100 hover:border-slate-200 bg-white'
-                      }`}
-                  >
-                    <span className="text-xl">{type.icon}</span>
-                    <span className={`text-[12px] font-bold ${formData.businessType === type.id ? 'text-indigo-600' : 'text-slate-500'}`}>{type.label}</span>
-                  </button>
-                ))}
-              </div>
+            {step === 2 && (
+              <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+                <h2 className="sketch-title text-3xl mb-2">Regional Economics</h2>
+                <p className="text-sm font-medium text-slate-500 mb-8">Configure your default currency and tax settings.</p>
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block">Base Currency</label>
+                    <select 
+                      className="input-field appearance-none cursor-pointer h-[50px]"
+                      value={formData.currency}
+                      onChange={e => setFormData({...formData, currency: e.target.value})}
+                    >
+                      <option>USD ($)</option>
+                      <option>INR (₹)</option>
+                      <option>EUR (€)</option>
+                      <option>GBP (£)</option>
+                    </select>
+                  </div>
+                  <Input 
+                    label="Default Tax Rate (%)"
+                    type="number"
+                    placeholder="18" 
+                    value={formData.taxRate}
+                    onChange={e => setFormData({...formData, taxRate: parseFloat(e.target.value)})}
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="text-center">
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h2 className="sketch-title text-3xl mb-2">Ready to Launch</h2>
+                <p className="text-sm font-medium text-slate-500 mb-10">You're all set to generate professional invoices and track your growth.</p>
+                
+                <div className="p-6 bg-slate-50 rounded-2xl text-left border border-slate-100 mb-10">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Workspace Summary</p>
+                  <p className="text-sm font-bold text-slate-700">{formData.businessName} • {formData.currency}</p>
+                </div>
+              </motion.div>
+            )}
+
+            <div className="flex items-center justify-between mt-12 pt-8 border-t border-slate-50">
+              {step > 1 ? (
+                <button onClick={handleBack} className="text-slate-400 font-bold text-[14px] hover:text-slate-600 transition-colors">Back</button>
+              ) : <div />}
+
+              {step < 3 ? (
+                <Button 
+                  onClick={handleNext} 
+                  disabled={!formData.businessName}
+                  className="px-8"
+                >
+                  Continue
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleSubmit} 
+                  isLoading={loading}
+                  className="px-10"
+                >
+                  Enter Workspace
+                </Button>
+              )}
             </div>
-
-            <InputGroup
-              label="Business Name *"
-              placeholder="e.g. Acme Innovations"
-              value={formData.businessName}
-              onChange={(e) => handleChange('businessName', e.target.value)}
-            />
-
-            <InputGroup
-              label="Business Address"
-              placeholder="123 Business Rd, Tech City"
-              multiline={true} rows={2}
-              value={formData.businessAddress}
-              onChange={(e) => handleChange('businessAddress', e.target.value)}
-            />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <InputGroup
-                label="UPI ID"
-                placeholder="company@bank"
-                value={formData.upiId}
-                onChange={(e) => handleChange('upiId', e.target.value)}
-              />
-              <InputGroup
-                label="Bank Details"
-                placeholder="Routing / Account No."
-                value={formData.bankDetails}
-                onChange={(e) => handleChange('bankDetails', e.target.value)}
-              />
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              disabled={loading}
-              className="w-full mt-4 py-4 px-6 bg-slate-900 text-white rounded-2xl font-extrabold text-[15px] hover:bg-black transition-all shadow-[0_4px_20px_rgb(0,0,0,0.1)] flex justify-center items-center gap-2"
-            >
-              {loading ? 'Saving...' : 'Finish Setup'}
-            </motion.button>
-          </form>
-        </div>
-      </motion.div>
-    </div>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
   );
-};
-
-export default OnboardingModal;
+}

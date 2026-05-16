@@ -11,7 +11,8 @@ import Modal from '../ui/Modal';
 import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
 import TextArea from '../ui/TextArea';
-import PageLoader from '../components/PageLoader';
+import { TableSkeleton } from '../components/Skeleton';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import StockLedgerModal from '../components/StockLedgerModal';
 
 export default function Inventory() {
@@ -20,6 +21,7 @@ export default function Inventory() {
   const [isLedgerOpen, setIsLedgerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [activeLedgerProduct, setActiveLedgerProduct] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // stores { id, name }
 
   // TanStack Query Hooks
   const { data: products = [], isLoading } = useProducts();
@@ -68,10 +70,8 @@ export default function Inventory() {
     );
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this item? This may affect historical ledgers.')) {
-      archiveProductMutation.mutate(id);
-    }
+  const handleDelete = (product) => {
+    setConfirmDelete({ id: product.id, name: product.name });
   };
 
   const filteredProducts = products.filter(p => 
@@ -91,7 +91,7 @@ export default function Inventory() {
               <input 
                 type="text" placeholder="Search inventory..." 
                 value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none w-64 transition-all"
+                className="pl-12 pr-4 py-2.5 bg-white border border-black/5 rounded-xl text-[14px] font-medium focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 outline-none w-64 transition-all shadow-sm"
               />
             </div>
             <Button onClick={() => handleOpenModal()} icon={() => (
@@ -105,7 +105,7 @@ export default function Inventory() {
 
       <Card noPadding>
         {isLoading ? (
-          <div className="py-20"><PageLoader /></div>
+          <div className="p-8"><TableSkeleton rows={5} /></div>
         ) : filteredProducts.length === 0 ? (
           <EmptyState 
             icon={(props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
@@ -162,10 +162,10 @@ export default function Inventory() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                       </button>
                     )}
-                    <button onClick={() => handleOpenModal(p)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                    <button onClick={() => handleOpenModal(p)} className="p-2 text-slate-400 hover:text-v-accent hover:bg-v-accent/5 rounded-xl transition-all">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
-                    <button onClick={() => handleDelete(p.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                    <button onClick={() => handleDelete(p)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                   </div>
@@ -260,7 +260,7 @@ export default function Inventory() {
             <select 
               value={formData.gstSlab} 
               onChange={(e) => setFormData({...formData, gstSlab: Number(e.target.value)})} 
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-[14px] font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:bg-white transition-all appearance-none cursor-pointer"
+              className="input-field appearance-none cursor-pointer h-[50px]"
             >
               <option value={0}>0% (Exempt)</option>
               <option value={5}>5%</option>
@@ -284,6 +284,16 @@ export default function Inventory() {
         isOpen={isLedgerOpen} 
         onClose={() => setIsLedgerOpen(false)} 
         product={activeLedgerProduct} 
+      />
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => archiveProductMutation.mutate(confirmDelete.id)}
+        title="Delete Inventory Item"
+        message={`Removing "${confirmDelete?.name}" may affect historical invoice ledgers. This action is permanent.`}
+        confirmText="Yes, Delete Item"
+        variant="danger"
       />
     </div>
   );

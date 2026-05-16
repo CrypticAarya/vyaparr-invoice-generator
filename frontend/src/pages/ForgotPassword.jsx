@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { forgotPassword } from '../api';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
 
 const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
@@ -46,18 +48,15 @@ const ForgotPassword = () => {
 
         {!success ? (
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Work Email</label>
-              <input
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                className="w-full bg-white border border-black/5 rounded-2xl px-5 py-3.5 text-[14px] outline-none transition-all focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 placeholder:text-zinc-400 shadow-sm"
-              />
-            </div>
+            <Input
+              label="Work Email"
+              name="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+            />
 
             {error && (
               <div className="text-rose-600 text-[13px] font-bold bg-rose-50 p-4 rounded-2xl border border-rose-100 flex items-center gap-3">
@@ -66,13 +65,13 @@ const ForgotPassword = () => {
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="w-full btn-premium btn-premium-primary py-4 mt-2 text-[15px]"
+              isLoading={loading}
+              className="w-full py-4 mt-2 text-[15px]"
             >
-              {loading ? 'Sending link...' : 'Send Reset Link'}
-            </button>
+              Send Reset Link
+            </Button>
           </form>
         ) : (
           <div className="text-center space-y-6">

@@ -12,13 +12,15 @@ import Modal from '../ui/Modal';
 import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
 import TextArea from '../ui/TextArea';
-import PageLoader from '../components/PageLoader';
+import ConfirmDialog from '../ui/ConfirmDialog';
+import { TableSkeleton } from '../components/Skeleton';
 
 export default function Clients() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // stores { id, name }
 
   // TanStack Query Hooks
   const { data: clients = [], isLoading } = useClients();
@@ -53,10 +55,8 @@ export default function Clients() {
     );
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this client?')) {
-      archiveClientMutation.mutate(id);
-    }
+  const handleDelete = (client) => {
+    setConfirmDelete({ id: client.id, name: client.name });
   };
 
   const filteredClients = clients.filter(c => 
@@ -76,7 +76,7 @@ export default function Clients() {
               <input 
                 type="text" placeholder="Search clients..." 
                 value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none w-64 transition-all"
+                className="pl-12 pr-4 py-2.5 bg-white border border-black/5 rounded-xl text-[14px] font-medium focus:border-v-accent/30 focus:ring-4 focus:ring-v-accent/10 outline-none w-64 transition-all shadow-sm"
               />
             </div>
             <Button onClick={() => handleOpenModal()} icon={() => (
@@ -90,7 +90,7 @@ export default function Clients() {
 
       <Card noPadding>
         {isLoading ? (
-          <div className="py-20"><PageLoader /></div>
+          <div className="p-8"><TableSkeleton rows={5} /></div>
         ) : filteredClients.length === 0 ? (
           <EmptyState 
             icon={(props) => <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
@@ -124,10 +124,10 @@ export default function Clients() {
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </button>
-                    <button onClick={() => handleOpenModal(client)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                    <button onClick={() => handleOpenModal(client)} className="p-2 text-slate-400 hover:text-v-accent hover:bg-v-accent/5 rounded-xl transition-all">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
-                    <button onClick={() => handleDelete(client.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                    <button onClick={() => handleDelete(client)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                   </div>
@@ -198,6 +198,16 @@ export default function Clients() {
           />
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => archiveClientMutation.mutate(confirmDelete.id)}
+        title="Delete Client"
+        message={`This will permanently remove "${confirmDelete?.name}" and all their records. This action cannot be undone.`}
+        confirmText="Yes, Delete Client"
+        variant="danger"
+      />
     </div>
   );
 }

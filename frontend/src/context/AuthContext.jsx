@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext(null);
 
@@ -7,32 +8,45 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check localStorage on mount
-    const storedToken = localStorage.getItem('vyaparflow_token');
-    const storedUser = localStorage.getItem('vyaparflow_user');
-
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (err) {
-        console.error("Auth hydration failed:", err);
-        localStorage.removeItem('vyaparflow_token');
-        localStorage.removeItem('vyaparflow_refresh_token');
-        localStorage.removeItem('vyaparflow_user');
-      }
+  const fetchProfile = async (authToken) => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+      const { data } = await axios.get(`${API_URL}/auth/profile`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      
+      const userData = data.user;
+      setUser(userData);
+      localStorage.setItem('vyaparflow_user', JSON.stringify(userData));
+    } catch (err) {
+      console.error("Session verification failed:", err);
+      logout();
     }
-    setLoading(false);
+  };
+
+  useEffect(() => {
+    const hydrate = async () => {
+      const storedToken = localStorage.getItem('vyaparflow_token');
+      const storedUser = localStorage.getItem('vyaparflow_user');
+
+      if (storedToken) {
+        setToken(storedToken);
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+        // Always fetch fresh profile to sync state (onboarding, business details)
+        await fetchProfile(storedToken);
+      }
+      setLoading(false);
+    };
+
+    hydrate();
   }, []);
 
-  const login = (userData, authToken, refreshToken) => {
+  const login = (userData, authToken) => {
     setToken(authToken);
     setUser(userData);
     localStorage.setItem('vyaparflow_token', authToken);
-    if (refreshToken) {
-      localStorage.setItem('vyaparflow_refresh_token', refreshToken);
-    }
     localStorage.setItem('vyaparflow_user', JSON.stringify(userData));
   };
 
@@ -40,12 +54,11 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('vyaparflow_token');
-    localStorage.removeItem('vyaparflow_refresh_token');
     localStorage.removeItem('vyaparflow_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser: () => fetchProfile(token) }}>
       {children}
     </AuthContext.Provider>
   );

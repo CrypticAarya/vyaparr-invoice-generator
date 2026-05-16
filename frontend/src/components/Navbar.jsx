@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import Button from '../ui/Button';
 
 export default function Navbar({ onMenuClick }) {
   const { user } = useAuth();
@@ -31,16 +32,18 @@ export default function Navbar({ onMenuClick }) {
         </div>
 
         {/* Notifications */}
-        <button className="p-3 text-zinc-500 hover:bg-white rounded-2xl transition-all border border-transparent hover:border-black/5 shadow-sm hover:shadow-md relative group">
-          <div className="absolute top-3 right-3 w-2 h-2 bg-v-accent border-2 border-v-bg rounded-full group-hover:scale-125 transition-transform"></div>
+        <button className="w-12 h-12 flex items-center justify-center text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 rounded-2xl transition-all border border-black/5 shadow-sm hover:shadow-md relative group">
+          <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-v-accent border-2 border-white rounded-full group-hover:scale-125 transition-transform"></div>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
         </button>
 
         {/* Quick Action Button */}
-        <button className="hidden sm:flex items-center gap-2 btn-premium btn-premium-primary py-2.5">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-          <span className="font-bold">New Flow</span>
-        </button>
+        <Button 
+          className="hidden sm:flex"
+          icon={() => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>}
+        >
+          New Flow
+        </Button>
       </div>
     </nav>
   );

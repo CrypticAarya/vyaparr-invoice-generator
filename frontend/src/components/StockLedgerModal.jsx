@@ -3,7 +3,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import { useProductLedger } from '../hooks/useProductLedger';
-import PageLoader from './PageLoader';
+import { PageLoader } from './Skeleton';
 
 const StockLedgerModal = ({ isOpen, onClose, product }) => {
   const { data: transactions = [], isLoading } = useProductLedger(product?.id);

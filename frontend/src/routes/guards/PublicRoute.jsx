@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import PageLoader from '../../components/PageLoader';
+import { PageLoader } from '../../components/Skeleton';
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();

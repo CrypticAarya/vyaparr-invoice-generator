@@ -14,8 +14,10 @@ class InvoiceService {
   async getInvoices(userId) {
     return prisma.invoice.findMany({
       where: { userId },
-      include: { items: true },
-      orderBy: { createdAt: 'desc' }
+      // OMITTED: include: { items: true } -> Huge N+1 memory risk. 
+      // The bulk list UI does not need every single line item of every invoice.
+      orderBy: { createdAt: 'desc' },
+      take: 200 // Sane limit for production resilience without pagination
     });
   }
 

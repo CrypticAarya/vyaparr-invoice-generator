@@ -1,114 +1,150 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
-
-// 1. Initial Setup & Env Configuration
-// Environment variables are now loaded via the side-effect import at the top.
+import morgan from 'morgan';
+import rtracer from 'cls-rtracer';
 
 import { connectDB } from './config/db.js';
+import logger from './utils/LoggerService.js';
+import AuditService from './services/AuditService.js';
+import errorMiddleware from './middleware/errorMiddleware.js';
+
+// Route Imports
 import authRoutes from './routes/authRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import clientRoutes from './routes/clientRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
-import AppError from './utils/AppError.js';
-import errorMiddleware from './middleware/errorMiddleware.js';
+import auditRoutes from './routes/auditRoutes.js';
 
-// Safety check for production: Never run without a JWT secret.
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('FATAL CONFIG ERROR: JWT_SECRET must be defined in production for security.');
+/**
+ * PRODUCTION-READY BOOTSTRAP SEQUENCE
+ */
+
+// Critical Env Validation
+const REQUIRED_ENV = ['JWT_SECRET', 'REFRESH_SECRET', 'DATABASE_URL', 'FRONTEND_URL'];
+const missing = REQUIRED_ENV.filter(key => !process.env[key]);
+if (missing.length > 0 && process.env.NODE_ENV === 'production') {
+  console.error(`CRITICAL ERROR: Missing required environment variables: ${missing.join(', ')}`);
   process.exit(1);
 }
 
 const app = express();
-const PORT = process.env.PORT || 5001; // Default to 5001 to avoid common macOS port conflicts
+const PORT = process.env.PORT || 5001;
 
-// 2. Middleware & Security Layer
-// We prioritize security by setting headers early and limiting request sizes.
-app.set('trust proxy', 1); // Necessary for accurate rate limiting when deployed behind proxies like Render/Vercel.
-
+// 1. Core Platform Security
+// Set security headers via Helmet and handle trust-proxy for deployments (Render/Vercel)
+app.set('trust proxy', 1);
 app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  contentSecurityPolicy: false, // Managed by frontend if needed
   crossOriginResourcePolicy: false,
 }));
 
-app.use(cookieParser());
-// We restrict body size to 10kb to mitigate potential payload-based DOS attacks.
-app.use(express.json({ limit: '10kb' }));
+// 2. Request Identification & Logging
+// We tag every request with a unique ID for end-to-end tracing
+app.use(rtracer.expressMiddleware());
+app.use(morgan((tokens, req, res) => {
+  return [
+    `[${rtracer.id()}]`,
+    tokens.method(req, res),
+    tokens.url(req, res),
+    tokens.status(req, res),
+    tokens.res(req, res, 'content-length'), '-',
+    tokens['response-time'](req, res), 'ms'
+  ].join(' ');
+}, { stream: { write: message => logger.info(message.trim()) } }));
 
-// 3. CORS Management
-// We maintain a strict whitelist in production but remain flexible during local development.
-const allowedOrigins = [
+// 3. Data Parsing & Sanitization
+app.use(cookieParser());
+app.use(express.json({ limit: '50kb' })); // Increased slightly for bulk product uploads
+app.use(express.urlencoded({ extended: true, limit: '50kb' }));
+
+// 4. Multi-Origin CORS Management
+const whitelist = [
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:5175',
-  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl) and check against whitelist.
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    // Allow non-browser requests (like AI agents or system pings)
+    if (!origin || whitelist.includes(origin) || process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
-      callback(new Error('Access blocked by CORS policy: Origin not authorized.'));
+      logger.warn(`Blocked Request from unauthorized origin: ${origin}`);
+      callback(new Error('CORS Access Denied'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// 4. API Resilience (Rate Limiting)
-// Prevents brute-force attacks and ensures API stability under heavy load.
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minute window
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000,
-  message: { success: false, error: 'Request threshold reached. Please try again in 15 minutes.' }
+// 5. Global API Resilience (Rate Limiting)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 300 : 10000, // Balanced for SaaS usage
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Take a deep breath and try again soon.' }
 });
-app.use('/api', limiter);
+app.use('/api', apiLimiter);
 
-// 5. Route Definitions
-// Standard health-check for automated monitoring systems.
+// 6. Monitoring & Health
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'UP', 
-    environment: process.env.NODE_ENV,
+    uptime: process.uptime(),
     timestamp: new Date().toISOString() 
   });
 });
 
+// 7. Route Orchestration
 app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/generate', aiRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/audit', auditRoutes);
 
-// 6. Global Fallback & Error Handling
-// Catch-all for undefined routes.
-app.use((req, res, next) => {
-  res.status(404).json({
-    success: false,
-    message: `Resource not found: ${req.originalUrl}`
-  });
+// 8. Fallback & Global Error Pipeline
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: `Resource [${req.originalUrl}] does not exist.` });
 });
 
-// Centralized error handler to ensure consistent JSON responses for all failures.
 app.use(errorMiddleware);
 
-// 7. Server Bootstrapping
-// We listen on the port FIRST to signal "Readiness" to deployment platforms (like Render),
-// then initialize the database connection asynchronously.
-app.listen(PORT, () => {
-  console.log(`\n🚀 VyaparFlow API is live on port ${PORT}`);
-  console.log(`📅 Started at: ${new Date().toLocaleString()}\n`);
+/**
+ * STARTUP PHASE
+ */
+const server = app.listen(PORT, async () => {
+  logger.info(`VyaparFlow SaaS Architecture Online [Port: ${PORT}]`);
   
-  connectDB().catch(err => {
-    console.error("CRITICAL: Database initialization failed during startup:");
-    console.error(err);
+  try {
+    await connectDB();
+    logger.info('Database subsystems initialized successfully.');
+    
+    // Log the system startup event
+    await AuditService.log(null, 'SYSTEM_STARTUP', 'PLATFORM', null, { 
+      port: PORT, 
+      env: process.env.NODE_ENV 
+    });
+  } catch (err) {
+    logger.error('CRITICAL: Service degradation during database connection:', err);
+  }
+});
+
+// Graceful Shutdown Support
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    logger.info('Process terminated.');
   });
 });

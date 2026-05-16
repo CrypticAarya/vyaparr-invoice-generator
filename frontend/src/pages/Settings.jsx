@@ -1,18 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { updateBusinessProfile, seedUser } from '../api';
+import { motion } from 'framer-motion';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
+import TextArea from '../ui/TextArea';
 
 export default function Settings() {
-  const { user, login, logout } = useAuth();
+  const { user, login } = useAuth();
   const { addToast } = useToast();
+  
   const [formData, setFormData] = useState({
-    businessName: user?.businessName || '',
-    businessType: user?.businessType || '',
-    businessAddress: user?.businessAddress || '',
-    upiId: user?.upiId || '',
-    bankDetails: user?.bankDetails || ''
+    businessName: '',
+    businessType: '',
+    businessAddress: '',
+    phone: '',
+    currency: 'USD',
+    taxRate: 0
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        businessName: user.businessName || '',
+        businessType: user.businessType || '',
+        businessAddress: user.businessAddress || '',
+        phone: user.phone || '',
+        currency: user.currency || 'USD',
+        taxRate: user.taxRate || 0
+      });
+    }
+  }, [user]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
 
@@ -26,20 +46,20 @@ export default function Settings() {
     try {
       const updatedUser = await updateBusinessProfile(formData);
       login(updatedUser, localStorage.getItem('vyaparflow_token'));
-      addToast('Profile updated successfully', 'success');
+      addToast('Profile synchronized successfully', 'success');
     } catch (err) {
-      addToast(err.message, 'error');
+      addToast(err.message || 'Failed to update profile', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleSeed = async () => {
-    if (!window.confirm('This will populate your account with demo data. Continue?')) return;
+    if (!window.confirm('This will populate your account with professional demo data. Proceed?')) return;
     setIsSeeding(true);
     try {
-      const res = await seedUser();
-      addToast('Demo data seeded! Refreshing...', 'success');
+      await seedUser();
+      addToast('Workspace seeded! Initializing...', 'success');
       setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
       addToast(err.message, 'error');
@@ -48,93 +68,89 @@ export default function Settings() {
     }
   };
 
+  if (!user) return <div className="animate-pulse h-96 bg-white/50 rounded-[32px]" />;
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Settings</h1>
-        <p className="text-xs font-medium text-slate-500">Manage your business profile and preferences.</p>
-      </div>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-5xl mx-auto space-y-10 pb-20"
+    >
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Business Workspace</h1>
+        <p className="text-sm font-medium text-slate-500">Configure your business profile and document preferences.</p>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        <div className="md:col-span-8 space-y-6">
-          {/* Business Profile */}
-          <div className="data-card">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Business Profile</h3>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="col-span-2 sm:col-span-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Legal Name</label>
-                <input name="businessName" value={formData.businessName} onChange={handleChange} className="input-field" placeholder="Acme Inc." />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-8 space-y-8">
+          {/* Identity & Legal */}
+          <section className="premium-card p-10">
+            <h3 className="text-[11px] font-bold text-indigo-500 uppercase tracking-[0.2em] mb-8">Identity & Entity</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+              <div className="sm:col-span-1">
+                <Input name="businessName" label="Legal Entity Name" value={formData.businessName} onChange={handleChange} placeholder="Acme Corporation" />
               </div>
-              <div className="col-span-2 sm:col-span-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Entity Type</label>
-                <input name="businessType" value={formData.businessType} onChange={handleChange} className="input-field" placeholder="Freelancer / Private Ltd" />
+              <div className="sm:col-span-1">
+                <Input name="businessType" label="Business Type" value={formData.businessType} onChange={handleChange} placeholder="Private Limited" />
               </div>
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Registered Address</label>
-                <textarea name="businessAddress" value={formData.businessAddress} onChange={handleChange} rows={3} className="input-field py-2" placeholder="Street, City, State, ZIP" />
+              <div className="sm:col-span-2">
+                <TextArea name="businessAddress" label="Registered Address" value={formData.businessAddress} onChange={handleChange} rows={3} placeholder="123 Innovation Way, Tech Park" />
               </div>
             </div>
-            <div className="flex justify-end pt-4 border-t border-slate-50">
-              <button onClick={handleSave} disabled={isSaving} className="btn btn-primary px-6">
-                {isSaving ? 'Saving...' : 'Update Profile'}
-              </button>
-            </div>
-          </div>
+          </section>
 
-          {/* Payment Settings */}
-          <div className="data-card">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Settlement Methods</h3>
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">UPI VPA</label>
-                <input name="upiId" value={formData.upiId} onChange={handleChange} className="input-field" placeholder="business@upi" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Bank Instructions (RTGS/NEFT)</label>
-                <textarea name="bankDetails" value={formData.bankDetails} onChange={handleChange} rows={4} className="input-field py-2" placeholder="Bank Name\nA/C No\nIFSC Code" />
-              </div>
-            </div>
-            <div className="flex justify-end pt-4 border-t border-slate-50">
-              <button onClick={handleSave} disabled={isSaving} className="btn btn-primary px-6">
-                Save Changes
-              </button>
-            </div>
+          <div className="flex items-center justify-between p-2">
+            <p className="text-[12px] text-slate-400 font-medium italic">Changes will reflect instantly on all future documents.</p>
+            <Button 
+              onClick={handleSave} 
+              isLoading={isSaving} 
+              className="px-10 h-14"
+            >
+              Save Workspace Changes
+            </Button>
           </div>
         </div>
 
-        {/* Sidebar Actions */}
-        <div className="md:col-span-4 space-y-6">
-          <div className="data-card bg-slate-50 border-slate-200">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Account</h3>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
+        {/* Action Sidebar */}
+        <aside className="lg:col-span-4 space-y-6">
+          <div className="premium-card p-8 bg-zinc-900 border-zinc-800 text-white shadow-xl shadow-indigo-500/10">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-xl font-bold border border-white/5">
                 {user?.name?.charAt(0)}
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-900">{user?.name}</p>
-                <p className="text-[10px] font-medium text-slate-500 truncate max-w-[120px]">{user?.email}</p>
+                <p className="font-bold text-white text-lg">{user?.name}</p>
+                <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-widest">Active Partner</p>
               </div>
             </div>
-            <button onClick={logout} className="w-full btn btn-secondary text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors">
-              Sign Out
-            </button>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-3 border-b border-white/5">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Currency</span>
+                <span className="text-xs font-bold">{formData.currency}</span>
+              </div>
+              <div className="flex items-center justify-between py-3 border-b border-white/5">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">Tax Rate</span>
+                <span className="text-xs font-bold">{formData.taxRate}%</span>
+              </div>
+            </div>
           </div>
 
-          <div className="data-card bg-slate-900 border-slate-800">
-            <h3 className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mb-3">Developer / Demo</h3>
-            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
-              Populate your workspace with realistic business data for demonstration purposes.
+          <div className="premium-card p-8 border-amber-100 bg-amber-50/30">
+            <h3 className="text-[11px] font-bold text-amber-600 uppercase tracking-widest mb-3">Data Utility</h3>
+            <p className="text-[11px] text-slate-500 mb-6 leading-relaxed font-medium">
+              Populate your dashboard with high-fidelity demo data to explore AI insights and document patterns.
             </p>
-            <button 
+            <Button 
               onClick={handleSeed} 
-              disabled={isSeeding}
-              className="w-full btn btn-accent"
+              isLoading={isSeeding}
+              className="w-full bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20"
             >
-              {isSeeding ? 'Seeding...' : 'Seed Demo Data'}
-            </button>
+              Seed Workspace
+            </Button>
           </div>
-        </div>
+        </aside>
       </div>
-    </div>
+    </motion.div>
   );
 }
