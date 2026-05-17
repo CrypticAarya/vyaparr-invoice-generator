@@ -63,30 +63,14 @@ app.use(cookieParser());
 app.use(express.json({ limit: '50kb' })); // Increased slightly for bulk product uploads
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
-// 4. Multi-Origin CORS Management
-const whitelist = [
-  process.env.FRONTEND_URL
-].filter(Boolean);
-
-// Allow localhost only in non-production environments for development
-if (process.env.NODE_ENV !== 'production') {
-  whitelist.push('http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175');
-}
-
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow non-browser requests (like AI agents or system pings)
-    if (!origin || whitelist.includes(origin) || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      logger.warn(`Blocked Request from unauthorized origin: ${origin}`);
-      callback(new Error('CORS Access Denied'));
-    }
-  },
+  origin: process.env.FRONTEND_URL || "https://vyaparflow-vert.vercel.app",
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
+
+app.options("*", cors());
 
 // 5. Global API Resilience (Rate Limiting)
 const apiLimiter = rateLimit({
