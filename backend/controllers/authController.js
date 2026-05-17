@@ -16,7 +16,7 @@ import UserService from '../services/UserService.js';
  */
 
 const ACCESS_SECRET = process.env.JWT_SECRET;
-const REFRESH_SECRET = process.env.REFRESH_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 /**
  * Helper: Signs a pair of JWTs for a user session.
@@ -33,8 +33,8 @@ const generateSessionTokens = (userId) => {
 const setRefreshCookie = (res, token) => {
   res.cookie('refreshToken', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+    secure: true, // Always true for production/SSL
+    sameSite: 'none', // Required for cross-domain auth (Vercel + Render)
     maxAge: 7 * 24 * 60 * 60 * 1000 
   });
 };
@@ -180,8 +180,8 @@ export const logoutUser = catchAsync(async (req, res, next) => {
 
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'
+    secure: true,
+    sameSite: 'none'
   });
 
   res.json({ success: true, message: 'Signed out successfully.' });
@@ -193,7 +193,7 @@ export const refreshToken = catchAsync(async (req, res, next) => {
   if (!token) return next(new AppError('No refresh token provided', 401));
 
   try {
-    const decoded = jwt.verify(token, process.env.REFRESH_SECRET);
+    const decoded = jwt.verify(token, REFRESH_SECRET);
     
     // Check if user still exists and token matches DB
     const user = await UserService.findById(decoded.id);
@@ -224,14 +224,4 @@ export const verifyEmail = catchAsync(async (req, res, next) => {
   res.json({ success: true, message: 'Email successfully verified.' });
 });
 
-// Demo/Seed Utility
-import { seedUserData } from '../utils/seeder.js';
-export const seedUser = catchAsync(async (req, res, next) => {
-  const results = await seedUserData(req.user.id);
-  await AuditService.log(req.user.id, 'WORKSPACE_SEEDED', 'SYSTEM', req.user.id, {}, req);
-  res.json({
-    success: true,
-    message: 'Demo environment initialized.',
-    data: results
-  });
-});
+

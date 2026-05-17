@@ -30,8 +30,11 @@ const Signup = () => {
       addToast('Account created successfully', 'success');
       navigate('/onboarding');
     } catch (err) {
-      setError(err.message || 'Signup failed');
-      addToast(err.message || 'Signup failed', 'error');
+      const detailedError = err.errors && err.errors.length > 0 
+        ? err.errors.map(e => e.message).join(', ') 
+        : err.message;
+      setError(detailedError || 'Signup failed');
+      addToast(detailedError || 'Signup failed', 'error');
     } finally {
       setLoading(false);
     }

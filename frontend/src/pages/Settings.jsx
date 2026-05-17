@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { updateBusinessProfile, seedUser } from '../api';
+import { updateBusinessProfile } from '../api';
 import { motion } from 'framer-motion';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -34,7 +34,6 @@ export default function Settings() {
   }, [user]);
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -54,19 +53,6 @@ export default function Settings() {
     }
   };
 
-  const handleSeed = async () => {
-    if (!window.confirm('This will populate your account with professional demo data. Proceed?')) return;
-    setIsSeeding(true);
-    try {
-      await seedUser();
-      addToast('Workspace seeded! Initializing...', 'success');
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (err) {
-      addToast(err.message, 'error');
-    } finally {
-      setIsSeeding(false);
-    }
-  };
 
   if (!user) return <div className="animate-pulse h-96 bg-white/50 rounded-[32px]" />;
 
@@ -136,19 +122,7 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="premium-card p-8 border-amber-100 bg-amber-50/30">
-            <h3 className="text-[11px] font-bold text-amber-600 uppercase tracking-widest mb-3">Data Utility</h3>
-            <p className="text-[11px] text-slate-500 mb-6 leading-relaxed font-medium">
-              Populate your dashboard with high-fidelity demo data to explore AI insights and document patterns.
-            </p>
-            <Button 
-              onClick={handleSeed} 
-              isLoading={isSeeding}
-              className="w-full bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20"
-            >
-              Seed Workspace
-            </Button>
-          </div>
+
         </aside>
       </div>
     </motion.div>

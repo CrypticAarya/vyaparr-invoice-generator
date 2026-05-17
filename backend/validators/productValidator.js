@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ID');
+const uuidSchema = z.string().uuid('Invalid identifier format');
 
 export const createProductSchema = z.object({
   body: z.object({
@@ -15,7 +15,7 @@ export const createProductSchema = z.object({
 
 export const updateProductSchema = z.object({
   params: z.object({
-    id: objectIdSchema,
+    id: uuidSchema,
   }),
   body: z.object({
     name: z.string().optional(),

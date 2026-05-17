@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ID');
+const uuidSchema = z.string().uuid('Invalid identifier format');
 
 const invoiceItemSchema = z.object({
   id: z.string(),
@@ -10,12 +10,12 @@ const invoiceItemSchema = z.object({
   hsn: z.string().optional(),
   gstSlab: z.number().min(0).max(100).optional(),
   discount: z.number().min(0).optional(),
-  productId: objectIdSchema.optional(),
+  productId: uuidSchema.optional(),
 });
 
 export const createInvoiceSchema = z.object({
   body: z.object({
-    clientId: objectIdSchema,
+    clientId: uuidSchema,
     businessName: z.string().optional(),
     businessAddress: z.string().optional(),
     clientName: z.string().optional(),
@@ -36,10 +36,10 @@ export const createInvoiceSchema = z.object({
 
 export const updateInvoiceSchema = z.object({
   params: z.object({
-    id: objectIdSchema,
+    id: uuidSchema,
   }),
   body: z.object({
-    clientId: objectIdSchema.optional(),
+    clientId: uuidSchema.optional(),
     businessName: z.string().optional(),
     businessAddress: z.string().optional(),
     clientName: z.string().optional(),

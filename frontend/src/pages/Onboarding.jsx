@@ -39,9 +39,10 @@ const Onboarding = () => {
     setLoading(true);
     try {
       const updatedUser = await updateBusinessProfile({ ...formData, isOnboarded: true });
-      // We don't need to re-login, just update the context if needed, 
-      // but the API call already updates the user in DB.
-      // Redirecting to home will trigger a profile refresh via AuthContext.
+      
+      // CRITICAL FIX: Immediately update the React AuthContext so ProtectedRoute doesn't bounce us back
+      login(updatedUser, localStorage.getItem('vyaparflow_token'));
+      
       addToast('Onboarding successful. Welcome to VyapaarFlow!', 'success');
       navigate('/home');
     } catch (error) {

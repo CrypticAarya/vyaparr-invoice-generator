@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../api';
 
 const AuthContext = createContext(null);
 
@@ -8,14 +8,9 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (authToken) => {
+  const fetchProfile = async () => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-      const { data } = await axios.get(`${API_URL}/auth/profile`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-      
-      const userData = data.user;
+      const { user: userData } = await apiClient.get('auth/profile');
       setUser(userData);
       localStorage.setItem('vyaparflow_user', JSON.stringify(userData));
     } catch (err) {
@@ -35,7 +30,7 @@ export const AuthProvider = ({ children }) => {
           setUser(JSON.parse(storedUser));
         }
         // Always fetch fresh profile to sync state (onboarding, business details)
-        await fetchProfile(storedToken);
+        await fetchProfile();
       }
       setLoading(false);
     };
@@ -58,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser: () => fetchProfile(token) }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser: () => fetchProfile() }}>
       {children}
     </AuthContext.Provider>
   );

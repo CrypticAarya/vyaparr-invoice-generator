@@ -26,7 +26,7 @@ import auditRoutes from './routes/auditRoutes.js';
  */
 
 // Critical Env Validation
-const REQUIRED_ENV = ['JWT_SECRET', 'REFRESH_SECRET', 'DATABASE_URL', 'FRONTEND_URL'];
+const REQUIRED_ENV = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_URL', 'FRONTEND_URL'];
 const missing = REQUIRED_ENV.filter(key => !process.env[key]);
 if (missing.length > 0 && process.env.NODE_ENV === 'production') {
   console.error(`CRITICAL ERROR: Missing required environment variables: ${missing.join(', ')}`);
@@ -65,11 +65,13 @@ app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
 // 4. Multi-Origin CORS Management
 const whitelist = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
   process.env.FRONTEND_URL
 ].filter(Boolean);
+
+// Allow localhost only in non-production environments for development
+if (process.env.NODE_ENV !== 'production') {
+  whitelist.push('http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175');
+}
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -94,7 +96,6 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests. Take a deep breath and try again soon.' }
 });
-app.use('/api', apiLimiter);
 
 // 6. Monitoring & Health
 app.get('/health', (req, res) => {
@@ -105,14 +106,23 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 7. Route Orchestration
-app.use('/api/auth', authRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/generate', aiRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/audit', auditRoutes);
+// 7. Route Orchestration (Centralized API Router)
+const apiRouter = express.Router();
+
+// Apply Rate Limiting to all API routes
+// apiRouter.use(apiLimiter);
+
+// Mount Feature Routes
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/invoices', invoiceRoutes);
+apiRouter.use('/generate', aiRoutes);
+apiRouter.use('/clients', clientRoutes);
+apiRouter.use('/products', productRoutes);
+apiRouter.use('/analytics', analyticsRoutes);
+apiRouter.use('/audit', auditRoutes);
+
+// Mount the API Router to the main app
+app.use('/api', apiRouter);
 
 // 8. Fallback & Global Error Pipeline
 app.use((req, res) => {
@@ -124,7 +134,7 @@ app.use(errorMiddleware);
 /**
  * STARTUP PHASE
  */
-const server = app.listen(PORT, async () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info(`VyaparFlow SaaS Architecture Online [Port: ${PORT}]`);
   
   try {

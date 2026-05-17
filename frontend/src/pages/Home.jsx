@@ -46,7 +46,7 @@ export default function Home() {
     );
   }
 
-  const { metrics, charts, recentActivity } = analyticsData;
+  const { metrics, charts, recentLedger: recentActivity = [] } = analyticsData;
 
   const getStatusStyle = (status) => {
     const s = status.toLowerCase();
@@ -155,7 +155,7 @@ export default function Home() {
                     {user?.currency || '₹'}{(metrics.totalRevenue || 0).toLocaleString()}
                   </p>
                   <p className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest mt-1">
-                    ↑ {metrics.growthRate}% Growth
+                    ↑ {metrics.revenueGrowth || 0}% Growth
                   </p>
                 </div>
               </div>
@@ -200,7 +200,7 @@ export default function Home() {
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                 </div>
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Client Acquisition</p>
-                <h4 className="text-3xl font-bold">{metrics.totalClients} <span className="text-sm text-zinc-400">Total</span></h4>
+                <h4 className="text-3xl font-bold">{metrics.clientCount || 0} <span className="text-sm text-zinc-400">Total</span></h4>
                 <p className="text-[12px] font-medium text-zinc-500 mt-2">Active business partnerships.</p>
               </div>
 
@@ -209,7 +209,7 @@ export default function Home() {
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                 </div>
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Active SKUs</p>
-                <h4 className="text-3xl font-bold">{metrics.activeProducts} <span className="text-sm text-zinc-400">Items</span></h4>
+                <h4 className="text-3xl font-bold">{metrics.productCount || 0} <span className="text-sm text-zinc-400">Items</span></h4>
                 <p className="text-[12px] font-medium text-zinc-500 mt-2">Inventory items with healthy stock.</p>
               </div>
             </div>
@@ -246,7 +246,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/[0.02]">
-                {recentActivity.length === 0 ? (
+                {(recentActivity || []).length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-10 py-16">
                       <div className="flex flex-col items-center justify-center text-center space-y-4">
@@ -261,7 +261,7 @@ export default function Home() {
                       </div>
                     </td>
                   </tr>
-                ) : recentActivity.map((activity, i) => (
+                ) : (recentActivity || []).map((activity, i) => (
                   <tr key={i} className="hover:bg-v-accent/[0.02] transition-colors group">
                     <td className="px-10 py-6">
                       <div className="flex items-center gap-4">

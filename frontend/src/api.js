@@ -9,10 +9,8 @@ import axios from 'axios';
  * 3. Silent session refreshing using secure httpOnly cookies.
  */
 
-const API_ENDPOINT = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-
-// Normalize the base URL to ensure it always ends correctly for relative routes
-const BASE_URL = API_ENDPOINT.endsWith('/api') ? API_ENDPOINT : `${API_ENDPOINT.replace(/\/$/, '')}/api`;
+const API_ENDPOINT = import.meta.env.VITE_API_URL;
+const BASE_URL = API_ENDPOINT ? (API_ENDPOINT.endsWith('/') ? API_ENDPOINT : `${API_ENDPOINT}/`) : '/api/';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -89,43 +87,43 @@ const purgeSession = () => {
  */
 
 // --- Auth & Identity ---
-export const signup = (name, email, password) => apiClient.post('/auth/signup', { name, email, password });
-export const login = (email, password) => apiClient.post('/auth/login', { email, password });
-export const logout = () => apiClient.post('/auth/logout');
-export const updateBusinessProfile = (profile) => apiClient.put('/auth/profile', profile).then(res => res.data.user);
-export const requestPasswordReset = (email) => apiClient.post('/auth/forgot-password', { email });
+export const signup = (name, email, password) => apiClient.post('auth/signup', { name, email, password });
+export const login = (email, password) => apiClient.post('auth/login', { email, password });
+export const logout = () => apiClient.post('auth/logout');
+export const updateBusinessProfile = (profile) => apiClient.put('auth/profile', profile).then(res => res.data.user);
+export const requestPasswordReset = (email) => apiClient.post('auth/forgot-password', { email });
 export const forgotPassword = requestPasswordReset; // Alias
-export const submitNewPassword = (token, password) => apiClient.post(`/auth/reset-password/${token}`, { password });
+export const submitNewPassword = (token, password) => apiClient.post(`auth/reset-password/${token}`, { password });
 export const resetPassword = submitNewPassword; // Alias
-export const seedUser = () => apiClient.post('/auth/seed');
+
 
 // --- Financial Documents (Invoices) ---
-export const fetchInvoices = () => apiClient.get('/invoices').then(res => res.data.invoices);
-export const saveInvoiceRecord = (invoice) => invoice.id ? apiClient.put(`/invoices/${invoice.id}`, invoice) : apiClient.post('/invoices', invoice);
-export const removeInvoiceRecord = (id) => apiClient.delete(`/invoices/${id}`);
-export const lockInvoice = (id) => apiClient.post(`/invoices/finalize/${id}`);
-export const recordInvoicePayment = (id, info) => apiClient.put(`/invoices/payment/${id}`, info);
-export const trackCommunication = (id, log) => apiClient.post(`/invoices/communication/${id}`, log);
+export const fetchInvoices = () => apiClient.get('invoices').then(res => res.data.invoices);
+export const saveInvoiceRecord = (invoice) => invoice.id ? apiClient.put(`invoices/${invoice.id}`, invoice) : apiClient.post('invoices', invoice);
+export const removeInvoiceRecord = (id) => apiClient.delete(`invoices/${id}`);
+export const lockInvoice = (id) => apiClient.post(`invoices/finalize/${id}`);
+export const recordInvoicePayment = (id, info) => apiClient.put(`invoices/payment/${id}`, info);
+export const trackCommunication = (id, log) => apiClient.post(`invoices/communication/${id}`, log);
 
 // --- Relationships (Clients) ---
-export const fetchClients = () => apiClient.get('/clients').then(res => res.data.clients);
-export const onboardClient = (client) => apiClient.post('/clients', client);
-export const modifyClient = (id, client) => apiClient.put(`/clients/${id}`, client);
-export const archiveClient = (id) => apiClient.delete(`/clients/${id}`);
+export const fetchClients = () => apiClient.get('clients').then(res => res.data.clients);
+export const onboardClient = (client) => apiClient.post('clients', client);
+export const modifyClient = (id, client) => apiClient.put(`clients/${id}`, client);
+export const archiveClient = (id) => apiClient.delete(`clients/${id}`);
 
 // --- Logistics (Products) ---
-export const fetchProducts = () => apiClient.get('/products').then(res => res.data.products);
-export const onboardProduct = (product) => apiClient.post('/products', product);
-export const modifyProduct = (id, product) => apiClient.put(`/products/${id}`, product);
-export const archiveProduct = (id) => apiClient.delete(`/products/${id}`);
+export const fetchProducts = () => apiClient.get('products').then(res => res.data.products);
+export const onboardProduct = (product) => apiClient.post('products', product);
+export const modifyProduct = (id, product) => apiClient.put(`products/${id}`, product);
+export const archiveProduct = (id) => apiClient.delete(`products/${id}`);
 
 // --- Intelligence ---
-export const fetchBusinessAnalytics = (range) => apiClient.get(`/analytics?range=${range || '1Y'}`).then(res => res.data.analytics);
-export const aiParseLineItems = (prompt) => apiClient.post('/generate', { prompt });
-export const fetchAiCfoInsights = () => apiClient.get('/generate/insights').then(res => res.data.insights);
+export const fetchBusinessAnalytics = (range) => apiClient.get(`analytics?range=${range || '1Y'}`).then(res => res.data.analytics);
+export const aiParseLineItems = (prompt) => apiClient.post('generate', { prompt });
+export const fetchAiCfoInsights = () => apiClient.get('generate/insights').then(res => res.data.insights);
 
 // --- Advanced / Legacy ---
-export const fetchProductLedger = (productId) => apiClient.get(`/products/${productId}/ledger`).then(res => res.data.transactions);
+export const fetchProductLedger = (productId) => apiClient.get(`products/${productId}/ledger`).then(res => res.data.transactions);
 export const fetchApi = (endpoint, options = {}) => {
   const method = options.method?.toLowerCase() || 'get';
   return apiClient[method](endpoint, options.body ? JSON.parse(options.body) : undefined);
