@@ -85,7 +85,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.options("*", cors());
+app.options(/.*/, cors());
 
 // 3. Data Parsing & Sanitization
 app.use(cookieParser());
