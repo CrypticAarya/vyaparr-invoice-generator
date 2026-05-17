@@ -66,6 +66,7 @@ app.use((req, res, next) => {
 
 const allowedOrigins = [
   "https://vyaparflow-vert.vercel.app",
+  "https://vyaparrflow-vert.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000"
 ];
