@@ -58,19 +58,39 @@ app.use(morgan((tokens, req, res) => {
   ].join(' ');
 }, { stream: { write: message => logger.info(message.trim()) } }));
 
-// 3. Data Parsing & Sanitization
-app.use(cookieParser());
-app.use(express.json({ limit: '50kb' })); // Increased slightly for bulk product uploads
-app.use(express.urlencoded({ extended: true, limit: '50kb' }));
+// Temporary Debug Middleware
+app.use((req, res, next) => {
+  console.log("Origin:", req.headers.origin);
+  next();
+});
+
+const allowedOrigins = [
+  "https://vyaparflow-vert.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000"
+];
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "https://vyaparflow-vert.vercel.app",
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("CORS not allowed"));
+  },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.options("*", cors());
+
+// 3. Data Parsing & Sanitization
+app.use(cookieParser());
+app.use(express.json({ limit: '50kb' }));
+app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
 // 5. Global API Resilience (Rate Limiting)
 const apiLimiter = rateLimit({
