@@ -27,5 +27,12 @@
   },
   "devDependencies": {
     "prisma": "^5.10.2"
-  }
+  },
+  "main": "server.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }
